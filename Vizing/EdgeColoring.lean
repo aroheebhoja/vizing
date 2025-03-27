@@ -2,49 +2,43 @@
 import Mathlib.Combinatorics.SimpleGraph.Coloring
 import Mathlib.Combinatorics.SimpleGraph.Path
 import Mathlib.Combinatorics.SimpleGraph.LineGraph
+import Mathlib.Combinatorics.SimpleGraph.Subgraph
 
-variable {V : Type u} (G : SimpleGraph V) {n : ℕ}
+variable {V : Type u} (G : SimpleGraph V) (H : SimpleGraph V) {n : ℕ}
 
 #check G.Coloring
 #check SimpleGraph.Path
 #check G.edgeSet
 #check G.lineGraph
 #check G.incidenceSet
+#check G.IsSubgraph
+#check G.lineGraph_adj_iff_exists
 
 namespace SimpleGraph
 
-def EdgeColoring : SimpleGraph V → α := sorry
+abbrev EdgeColoring (α : Type v) := (G.lineGraph).Coloring α
 
-#check G.EdgeColoring
-#check G.edgeSet
+-- partial coloring of G : coloring of the induced subgraph on some X ⊆ V
+-- we want to consider all the edges incident to the vertices we're coloring
+-- so this seems reasonable I think...
 
+abbrev PartialColoring (α : Type v) (s : Set V) := (G.induce s).Coloring α
+abbrev PartialEdgeColoring (α : Type v) (s : Set (↑G.edgeSet)) := G.lineGraph.PartialColoring α s
 
-/-
-*Useful in general*
-Want to define:
+variable {G H s}
+variable {α : Type*} (C : G.EdgeColoring α) (C' : G.PartialEdgeColoring α s)
 
-using "color" as a placeholder for some abstract type that should represent
-colors
+theorem EdgeColoring.valid {e f : ↑G.edgeSet} (h : G.lineGraph.Adj e f) : C e ≠ C f :=
+  C.map_rel h
 
-EdgeColoring : SimpleGraph V → Set color (???)
-· Maps G.edgeSet to colors (from a set of colors)
-· Can be partial (should I use options?)
-* Vertex coloring is defined as a homomorphism from G to the complete graph on α
-* Do we want to define edge coloring analogously...?
-* Edge coloring of G corresponds to vertex coloring of line graph of G,
-  and line graph is defined in mathlib
-* Does this make it better or worse though...
-* Also in the definition of vertex coloring is α a set...?
+def EdgeColorable (n : ℕ) : Prop := Nonempty (G.EdgeColoring (Fin n))
 
-Colorable : n → Prop
-· true if G can be edge colored with n colors, false otherwise
+noncomputable def edgeChromaticNumber : ℕ∞ := ⨅ n ∈ setOf G.EdgeColorable, (n : ℕ∞)
 
-EdgeChromaticNumber
-· min n such that Colorable n
+-- This seems somewhat reasonable???????
+def Colored (e : ↑G.edgeSet) : Prop := e ∈ s
 
-Colored : e → Prop
-· true if e is colored in a partial coloring
--/
+-- Need some theorems about partial colorings???? idk
 
 /-
 *Probably only useful for the algorithm*
@@ -66,6 +60,39 @@ AlternatingPath x c d : V → α → α → Path
 · maximal path going through x that only contains edges colored with c and d
 
 -/
+
+-- If my graph and my coloring are supposed to be finite should I generalize
+-- this definition or should I just define everything separately for this specific case
+
+#check G.incidenceSet
+
+#check Set.image
+
+#check incidenceSet_subset
+
+#check Coe
+
+def incidentColors (v : V) : Set α :=
+  {c : α | ∃ e, ∃ h' : e ∈ G.incidenceSet v,
+           ∃ h : ⟨e, incidenceSet_subset _ _ h'⟩ ∈ s,
+           c = C' ⟨⟨e, incidenceSet_subset _ _ h'⟩, h⟩}
+
+def freeColors (v : V) : Set α := {c : α | c ∉ incidentColors C' v}
+
+def fan (v : V) := true
+
+#check Walk.edges
+
+-- How to get even and odd indexed elements of a list?
+def isAlternatingPath (P : Walk G a b) (v : V) (c : α) (d : α) :=
+  P.IsPath ∧ v ∈ P.support
+  -- even indexed elements colored with c, odd indexed elements colored with d
+  -- or vice versa
+
+-- is maximal alternating path: P a and b is an alternating path and cannot be
+-- extended by any of the other edges incident to a or b
+
+  -- Set.image C' (G.incidenceSet v ∩ s)
 
 /-
 Subroutines to implement:

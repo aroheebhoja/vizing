@@ -36,34 +36,36 @@ theorem cx (C : EdgeColoring c) (e : Edge n) : e.1 < C.size ∧
     · exact e.2.isLt
     · exact Array.mem_of_getElem rfl
 
-def color (C : EdgeColoring c) (e : Edge n) :=
+variable (C : EdgeColoring c)
+
+def color (e : Edge n) :=
   have := cx c n C e
   C[e.1][e.2]
 
-def setEdgeColor (C : EdgeColoring c) (e : Edge n) (a : Color c) : EdgeColoring c :=
+def setEdgeColor (e : Edge n) (a : Color c) : EdgeColoring c :=
   let e' := (e.2, e.1)
   have := cx c n C e
   let C := C.set e.1 <| C[e.1].set e.2 a
   have := cx c n C e'
   C.set e'.1 <| C[e'.1].set e'.2 a
 
-def getIncidentColors (C : EdgeColoring c) (v : Vertex n) : List (Color c) :=
+def getIncidentColors (v : Vertex n) : List (Color c) :=
   (nbors n G v).map (fun a => color c n C (v, a))
 
-def getNborWithColor (C : EdgeColoring c) (v : Vertex n) (a : Color c) : Option (Vertex n) :=
+def getNborWithColor (v : Vertex n) (a : Color c) : Option (Vertex n) :=
   let choices := (nbors n G v).filter (fun x => color c n C (v, x) = a)
   match choices with
   | [] => none
   | u :: _ => some u
 
-def getFreeColors (C : EdgeColoring c) (v : Vertex n) : List (Color c) :=
+def getFreeColors (v : Vertex n) : List (Color c) :=
   let incident := getIncidentColors c n G C v
   (allColors c).filter (fun x => x ∉ incident)
 
-def freeOn (C : EdgeColoring c) (a : Color c) (v : Vertex n) :=
+def freeOn (a : Color c) (v : Vertex n) :=
   a ∈ getFreeColors c n G C v
 
-def incidentOn (C : EdgeColoring c) (a : Color c) (v : Vertex n) :=
+def incidentOn (a : Color c) (v : Vertex n) :=
   a ∈ getIncidentColors c n G C v
 
 end EdgeColoring

@@ -1,9 +1,5 @@
--- Implementation of a basic graph library.
 /-
-
-The idea is all the mucking around with implementation details happens here
-so the implementation of the algorithm is entirely abstract.
-
+Implementation of a basic library for undirected graphs on [n].
 -/
 import Std
 

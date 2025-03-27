@@ -1,31 +1,69 @@
 import Vizing.Graph
 
+namespace EdgeColoring
 open Graph
 
-namespace EdgeColoring
+/-
+Implementation of a basic edge-coloring library,
+where `EdgeColoring c` represents a c-edge-coloring of a graph on [n] vertices.
+-/
 
--- Implementation of graph edge coloring
+variable (c : Nat) (n : Nat) (G : Graph n)
 
--- Color type :
+-- We choose 0 as the default value, to represent an uncolored edge
+axiom nonempty : 0 < c
 
--- Edge coloring type :
+abbrev Color := Fin (c + 1)
+abbrev EdgeColoring := Array (Array (Color c))
 
--- Functions
+def allColors : List (Color c) :=
+  let L := List.finRange (c + 1)
+  L.erase ⟨0, nonempty (c+1)⟩
 
--- 4. Color an edge
+axiom edgecoloring1 (C : EdgeColoring c) : C.size = n ∧
+  ∀ x ∈ C, x.size = n
 
--- 5. Get the incident colors of a vertex
+theorem cx' (C : EdgeColoring c) (v : Vertex n) : v < C.size := by
+  rw [(edgecoloring1 c n C).left]
+  exact v.isLt
 
--- 6. Get the free colors of a vertex
+-- Accessing the color of an edge is always in bound
+theorem cx (C : EdgeColoring c) (e : Edge n) : e.1 < C.size ∧
+  e.2 < (C[e.1]'(cx' c n C e.1)).size := by
+  constructor
+  · exact cx' c n C e.1
+  · rw [(edgecoloring1 c n C).right]
+    · exact e.2.isLt
+    · exact Array.mem_of_getElem rfl
 
--- 7. Set the edge color of a vertex
+def color (C : EdgeColoring c) (e : Edge n) :=
+  have := cx c n C e
+  C[e.1][e.2]
 
--- 8. Given a color c, return an option if there is an incident vertex colored c
+def setEdgeColor (C : EdgeColoring c) (e : Edge n) (a : Color c) : EdgeColoring c :=
+  let e' := (e.2, e.1)
+  have := cx c n C e
+  let C := C.set e.1 <| C[e.1].set e.2 a
+  have := cx c n C e'
+  C.set e'.1 <| C[e'.1].set e'.2 a
 
--- Predicates:
+def getIncidentColors (C : EdgeColoring c) (v : Vertex n) : List (Color c) :=
+  (nbors n G v).map (fun a => color c n C (v, a))
 
--- c is free on v
+def getNborWithColor (C : EdgeColoring c) (v : Vertex n) (a : Color c) : Option (Vertex n) :=
+  let choices := (nbors n G v).filter (fun x => color c n C (v, x) = a)
+  match choices with
+  | [] => none
+  | u :: _ => some u
 
--- c is incident on v
+def getFreeColors (C : EdgeColoring c) (v : Vertex n) : List (Color c) :=
+  let incident := getIncidentColors c n G C v
+  (allColors c).filter (fun x => x ∉ incident)
+
+def freeOn (C : EdgeColoring c) (a : Color c) (v : Vertex n) :=
+  a ∈ getFreeColors c n G C v
+
+def incidentOn (C : EdgeColoring c) (a : Color c) (v : Vertex n) :=
+  a ∈ getIncidentColors c n G C v
 
 end EdgeColoring

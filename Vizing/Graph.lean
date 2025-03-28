@@ -35,4 +35,10 @@ def edgeSet (G : Graph n) : EdgeSet n :=
 
 def nbors (G : Graph n) (v : Vertex n) := G[v]'(vx n G v)
 
+def maxDegree (G : Graph n) :=
+  let degrees := (G.map (fun nbors => nbors.length))
+  match degrees.getMax? (· < ·) with
+  | some d => d
+  | none => 0
+
 end Graph

@@ -16,6 +16,9 @@ axiom nonempty : 0 < c
 abbrev Color := Fin (c + 1)
 abbrev EdgeColoring := Array (Array (Color c))
 
+def default : EdgeColoring c :=
+  mkArray G.size (mkArray G.size 0)
+
 def allColors : List (Color c) :=
   let L := List.finRange (c + 1)
   L.erase ⟨0, nonempty (c+1)⟩
@@ -41,6 +44,9 @@ variable (C : EdgeColoring c)
 def color (e : Edge n) :=
   have := cx c n C e
   C[e.1][e.2]
+
+axiom proper1 (e : Edge n) : ∀ v ∈ nbors n G e.1, color c n C e = color c n C (e.1, v) → v = e.2
+axiom proper2 (e : Edge n) : ∀ u ∈ nbors n G e.2, color c n C e = color c n C (u, e.2) → u = e.1
 
 def setEdgeColor (e : Edge n) (a : Color c) : EdgeColoring c :=
   let e' := (e.2, e.1)

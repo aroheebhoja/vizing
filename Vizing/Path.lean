@@ -5,19 +5,22 @@ open Graph
 open EdgeColoring
 
 variable (a n : Nat) (G : Graph n) (C : EdgeColoring a) (c d : Color a)
+  (edgecoloring1 : C.size = n ∧ ∀ x ∈ C, x.size = n)
+
 abbrev Path := List (Edge n)
 
-axiom path1 (P : Path n) : P ⊆ edgeSet n G
-axiom path2 (P : Path n) : P.Nodup
--- Every vertex is present in 0, 1, or 2 edges in P
-axiom path3 (P : Path n) (v : Vertex n) : (P.filter (fun e => v = e.1 ∨ v = e.2)).length < 3
+variable
+  (P : Path n)
+  (path1 : P ⊆ edgeSet n G)
+  (path2 : P.Nodup)
+  (path3 : ∀ v, (P.filter (fun e => v = e.1 ∨ v = e.2)).length < 3)
 
 def cdPath (x : Vertex n) (c d : Color a) :=
   let p1 := extendPath x c []
   let p2 := extendPath x d []
   p1 ++ (p2.reverse)
 where extendPath (u : Vertex n) (j : Color a) (p : Path n) : Path n :=
-  let us := (nbors n G u).filter (fun v => color a n C (u, v) == j)
+  let us := (nbors n G u).filter (fun v => color a n C edgecoloring1 (u, v) == j)
   let k := if j == c then d else c
   match h : us with
   | [] => p
@@ -36,9 +39,11 @@ where extendPath (u : Vertex n) (j : Color a) (p : Path n) : Path n :=
     extendPath u' k p'
 termination_by ((edgeSet n G).diff p).length
 
-def invertPath (C : EdgeColoring a) (P : Path n) (c d : Color a) :=
+def invertPath (C : EdgeColoring a) (h : C.size = n ∧ ∀ x ∈ C, x.size = n) (P : Path n) (c d : Color a) :=
   match P with
   | [] => C
   | (u, v)::P' =>
-    let k := if color a n C (u, v) == c then d else c
-    invertPath (setEdgeColor a n C (u, v) k) P' c d
+    let k := if color a n C h (u, v) == c then d else c
+    let C' := setEdgeColor a n C h (u, v) k
+    have h' : C'.size = n ∧ ∀ x ∈ C', x.size = n := by sorry
+    invertPath C' h' P' c d

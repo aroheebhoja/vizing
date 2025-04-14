@@ -10,6 +10,7 @@ where `EdgeColoring c` represents a c-edge-coloring of a graph on [n] vertices.
 
 variable (c : Nat) (n : Nat) (G : Graph n)
   (nonempty : 0 < c)
+  (graphsize : G.size = n)
 
 -- We choose 0 as the default value, to represent an uncolored edge
 
@@ -50,8 +51,8 @@ def color (e : Edge n) :=
   C[e.1][e.2]
 
 variable
-  (proper1 : ∀ e, ∀ v ∈ nbors n G e.1, color c n C edgecoloring1 e = color c n C edgecoloring1 (e.1, v) → v = e.2)
-  (proper2 : ∀ e, ∀ u ∈ nbors n G e.2, color c n C edgecoloring1 e = color c n C edgecoloring1 (u, e.2) → u = e.1)
+  (proper1 : ∀ e, ∀ v ∈ nbors n G graphsize e.1, color c n G C edgecoloring1 e = color c n G C edgecoloring1 (e.1, v) → v = e.2)
+  (proper2 : ∀ e, ∀ u ∈ nbors n G graphsize e.2, color c n G C edgecoloring1 e = color c n G C edgecoloring1 (u, e.2) → u = e.1)
 
 def setEdgeColor (e : Edge n) (a : Color c) : EdgeColoring c :=
   let e' := (e.2, e.1)
@@ -63,22 +64,22 @@ def setEdgeColor (e : Edge n) (a : Color c) : EdgeColoring c :=
   C'.set e'.1 <| C'[e'.1].set e'.2 a
 
 def getIncidentColors (v : Vertex n) : List (Color c) :=
-  (nbors n G v).map (fun a => color c n C edgecoloring1 (v, a))
+  (nbors n G graphsize v).map (fun a => color c n G C edgecoloring1 (v, a))
 
 def getNborWithColor? (v : Vertex n) (a : Color c) : Option (Vertex n) :=
-  let choices := (nbors n G v).filter (fun x => color c n C edgecoloring1 (v, x) = a)
+  let choices := (nbors n G graphsize v).filter (fun x => color c n G C edgecoloring1 (v, x) = a)
   match choices with
   | [] => none
   | u :: _ => some u
 
 def getFreeColors (v : Vertex n) : List (Color c) :=
-  let incident := getIncidentColors c n G C edgecoloring1 v
+  let incident := getIncidentColors c n G graphsize C edgecoloring1 v
   (allColors c nonempty).filter (fun x => x ∉ incident)
 
 def freeOn (a : Color c) (v : Vertex n) :=
-  a ∈ getFreeColors c n G nonempty C edgecoloring1 v
+  a ∈ getFreeColors c n G nonempty graphsize C edgecoloring1 v
 
 def incidentOn (a : Color c) (v : Vertex n) :=
-  a ∈ getIncidentColors c n G C edgecoloring1 v
+  a ∈ getIncidentColors c n G graphsize C edgecoloring1 v
 
 end EdgeColoring

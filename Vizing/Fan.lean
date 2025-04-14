@@ -10,14 +10,15 @@ variable (c n : Nat)
 abbrev Fan := List (Vertex n)
 variable (G : Graph n) (C : EdgeColoring c)
   (edgecoloring1 : C.size = n ∧ ∀ x ∈ C, x.size = n)
+  (graphsize : G.size = n)
 
 def fan (x y : Vertex n) : Fan n :=
-  let N := (nbors n G x).erase (y)
+  let N := (nbors n G graphsize x).erase (y)
   (fan' [y] N).reverse
 where fan' : (Fan n) → List (Vertex n) → (Fan n)
   | f :: fs, N =>
-    let freeColors := getFreeColors c n G nonempty C edgecoloring1 f
-    let next := N.filter (fun u => freeColors.contains (color c n C edgecoloring1 (x, u)))
+    let freeColors := getFreeColors c n G nonempty graphsize C edgecoloring1 f
+    let next := N.filter (fun u => freeColors.contains (color c n G C edgecoloring1 (x, u)))
     match h : next with
     | [] => (f :: fs)
     | v :: vs => have : (N.erase v).length < N.length := by
@@ -41,7 +42,7 @@ def subfan (F : Fan n) (a : Color c) :=
   match F with
   | [] => []
   | f :: fs =>
-    let freeColors := getFreeColors c n G nonempty C edgecoloring1 f
+    let freeColors := getFreeColors c n G nonempty graphsize C edgecoloring1 f
     if a ∈ freeColors then [f] else f :: (subfan fs a)
 
 def rotateFan (F : Fan n) (x : Vertex n) (a : Color c) : EdgeColoring c :=
@@ -51,6 +52,6 @@ rotate : Fan n → EdgeColoring c → Color c → EdgeColoring c
   | f :: fs, C, a =>
     have h1 : C.size = n := by sorry
     have h2 : ∀ x ∈ C, x.size = n := by sorry
-    let a' := color c n C ⟨h1, h2⟩ (x, f)
-    let C' := setEdgeColor c n C ⟨h1, h2⟩ (x, f) a
+    let a' := color c n G C ⟨h1, h2⟩ (x, f)
+    let C' := setEdgeColor c n G C ⟨h1, h2⟩ (x, f) a
     rotate fs C' a'

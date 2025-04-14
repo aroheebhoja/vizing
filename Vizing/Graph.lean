@@ -12,31 +12,26 @@ abbrev Nbors := List (Vertex n)
 abbrev Graph := Array (Nbors n)
 abbrev EdgeSet := List (Edge n)
 
--- Axioms: a vertex can have at most n-1 neighbors, and each neighbor is unique
-
--- change these to variables
-variable (n : Nat) (A : Nbors n)
+variable (n : Nat) (A : Nbors n) (G : Graph n)
   (nbors1 : A.length < n-1)
   (nbors2 : A.Nodup)
+  (graphsize : G.size = n)
 
--- Axiom: If we have n vertices, we have n adjacency lists in our graph representation
-axiom graph1 (G : Graph n) : G.size = n
-
--- Accessing the adjacency list of a vertex is always in bounds
--- include n h in
-theorem vx : ∀ G : Graph n, ∀ v : Vertex n, v < G.size := by
-  intro G v
-  rw [graph1]
+include graphsize in
+theorem vx : ∀ v : Vertex n, v < G.size := by
+  intro v
+  rw [graphsize]
   exact v.isLt
 
   -- ∀ u v, (u, v) ∈ E → v ∈ G[u]'(vx n G u) ∧
   --                     u ∈ G[v]'(vx n G v)
 
-def edgeSet (G : Graph n) : EdgeSet n :=
+include graphsize in
+def edgeSet : EdgeSet n :=
   (G.mapFinIdx (fun u nbors h =>
-  (nbors.map (fun v => (⟨u, by rw [graph1] at h; exact h⟩, v))))).toList.flatten
+  (nbors.map (fun v => (⟨u, by rw [graphsize] at h; exact h⟩, v))))).toList.flatten
 
-def nbors (G : Graph n) (v : Vertex n) := G[v]'(vx n G v)
+def nbors (v : Vertex n) := G[v]'(vx n G graphsize v)
 
 def maxDegree (G : Graph n) :=
   let degrees := (G.map (fun nbors => nbors.length))

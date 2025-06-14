@@ -1,0 +1,21 @@
+
+-- This is lowkey useless but I worked very hard on it
+-- partial def fan (G : Graph) (x : Vertex) (C : EdgeColoring) (Δ : Nat) :=
+--   let nbors := G[x]!.toList
+--   let uncolored := nbors.filter (isUncolored C x)
+--   let colored := nbors.filter (fun n => not (isUncolored C x n))
+--   (fan' [] colored uncolored).reverse where
+--   fan' : Fan → List Vertex → List Vertex → Fan
+--   -- Case 1: No uncolored neighbors, so we can't do anything
+--   | [], _, [] => []
+--   -- Case 2: At least one uncolored neighbor, so we start constructing the fan
+--   | [], c, u::us => fan' [u] c us
+--   -- Case 3: Already built up a partial fan
+--   | f :: fs, c, u =>
+--     let freeColors := getFreeColors G f C Δ
+--     -- Q: Is there an easy way to write this case so I don't have to write a termination proof?
+--     let choices := c.filter (fun y => freeColors.contains (color C x y))
+--     let others := c.filter (fun y => not (choices.contains y))
+--     match choices with
+--     | [] => f :: fs
+--     | n :: ns => fan' (n :: (f :: fs)) (ns ++ others) u'

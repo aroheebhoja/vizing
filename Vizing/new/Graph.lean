@@ -1,9 +1,7 @@
 /-
 Implementation of a basic library for undirected graphs on [n].
 -/
-
 import Std
-import Mathlib.Data.List.MinMax
 import Mathlib.Tactic
 set_option linter.dupNamespace false
 

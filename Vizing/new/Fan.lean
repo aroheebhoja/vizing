@@ -117,138 +117,29 @@ theorem add_colorAx (x y : Vertex n) (F : Array (Vertex n))
   · rw [add]
     simp_all only [colorAx, implies_true]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-#exit
-
-def add_next (x y : Vertex n) (F : Array (Vertex n))
-  (nbors : List (Vertex n)) (h : F ≠ #[]) : Array (Vertex n) × List (Vertex n) :=
-  match nbors with
-  | [] => (F, [])
-  | next :: rest =>
-    if color n c G C (x, next) ∈ freeColorsOn n c G C
-      (F.back (by exact Array.size_pos_iff.mpr h)) then
-      ((F.push next), rest) else
-    Prod.map id (next :: ·) (add_next x y F rest h)
-
-#exit
-theorem add_nborsAx (x y : Vertex n) (F : Array (Vertex n))
-  (nbors : List (Vertex n)) (hne : F ≠ #[]) (h : F.toList ⊆ nbhd n G x)
-  (hn : nbors ⊆ nbhd n G x) :
-  (add n c G C x y F nbors hne).toList ⊆ nbhd n G x := by
-  induction' nbors with z zs ih generalizing F
-  <;> simp [add]
-  · assumption
-  · split_ifs
-    all_goals apply List.cons_subset.mp at hn
-    · exact ih (F.push z) (by simp_all) (by simp_all) hn.right
-    · exact ih F hne h hn.right
-
-theorem add_nonemptyAx (x y : Vertex n) (F : Array (Vertex n))
-  (nbors : List (Vertex n)) (h : F ≠ #[]) :
-  (add n c G C x y F nbors h) ≠ #[] := by
-  induction' nbors with z zs ih generalizing F
-  <;> simp [add]
-  · assumption
-  · split_ifs
-    · exact ih (F.push z) (by exact Array.push_ne_empty)
-    · exact ih F h
-
-theorem add_firstElemAx (x y : Vertex n) (F : Array (Vertex n))
-  (nbors : List (Vertex n)) (hne : F ≠ #[])
-  (h : F[0]'(Array.size_pos_iff.mpr hne) = y) :
-  (add n c G C x y F nbors hne)[0]'(Array.size_pos_iff.mpr
-    (add_nonemptyAx n c G C x y F nbors hne)) = y := by
-  induction' nbors with z zs ih generalizing F
-  <;> simp [add]
-  · assumption
-  · split_ifs
-    all_goals apply ih
-    · rw [← h]
-      exact Array.getElem_push_lt (Array.size_pos_iff.mpr hne)
-    · assumption
-
-theorem add_colorAx (x y : Vertex n) (F : Array (Vertex n))
-  (nbors : List (Vertex n)) (hne : F ≠ #[]) (h : colorAx n c G C F x) :
-  colorAx n c G C (add n c G C x y F nbors hne) x := by
-  induction' nbors with z zs ih generalizing F
-  <;> simp [add]
-  exact h
-  split; all_goals rename_i h'
-  · apply ih (F.push z)
-    unfold colorAx at ⊢ h
-    simp only [Array.size_push, add_tsub_cancel_right]
-    intro i hi
-    by_cases hsize : i < F.size - 1
-    · have aux1 : (F.push z)[i]'(by simp [Array.size_push]; linarith) = F[i] := by
-        exact Array.getElem_push_lt hi
-      have aux2 : (F.push z)[i+1]'(by simp [Array.size_push]; linarith) = F[i+1] := by
-        apply Array.getElem_push_lt
-      simp_rw [aux1, aux2]
-      exact h i hsize
-    · have hi' : i = F.size - 1 := by
-        simp only [not_lt, tsub_le_iff_right] at hsize
-        apply Nat.lt_or_eq_of_le at hsize
-        rcases hsize with hsize | hsize
-        · linarith
-        · exact Nat.eq_sub_of_add_eq (Eq.symm hsize)
-      have aux1 : (F.push z)[i+1]'(by simp [Array.size_push]; linarith) = z := by
-        subst hi'
-        simp_rw [Nat.sub_add_cancel (Nat.one_le_of_lt hi)]
-        exact Array.getElem_push_eq
-      have aux2 : (F.push z)[i]'(by simp [Array.size_push]; linarith) = F.back := by
-        simp_rw [Array.getElem_push_lt (by exact hi), hi']
-        rfl
-      rw [aux1, aux2]
-      assumption
-  · exact ih F hne h
-
 theorem add_nodupAx (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hn : nbors.Nodup) (hne : F ≠ #[]) (h : F.toList.Nodup)
   (hdisjoint : List.Disjoint nbors F.toList) :
   (add n c G C x y F nbors hne).toList.Nodup := by
-  induction' nbors with z zs ih generalizing F
-  <;> simp [add]
-  · assumption
-  split_ifs; all_goals rename_i h'
-  · apply ih
-    · exact List.Nodup.of_cons hn
-    · simp only [Array.toList_push]
+  induction F, nbors, hne using add.induct n c G C x
+  · rename_i F nbors hne z hz ih
+    rw [add]; simp_all only
+    apply ih
+    · exact List.Nodup.erase z.val hn
+    · simp
       apply List.nodup_append.mpr
-      repeat any_goals apply And.intro
-      · assumption
-      · exact List.nodup_singleton z
-      · exact List.Disjoint.symm
-          (List.disjoint_of_disjoint_append_left_left hdisjoint)
-    · simp only [Array.toList_push]
-      apply List.disjoint_append_right.mpr
+      use h, List.nodup_singleton z.val
+      specialize hdisjoint z.prop
+      simp_all
+    · simp [List.Disjoint] at hdisjoint ⊢
+      intro a h
       constructor
-      · exact List.Disjoint.symm (List.disjoint_of_disjoint_cons_right
-        (List.Disjoint.symm hdisjoint))
-      · exact List.Disjoint.symm (List.disjoint_of_nodup_append hn)
-  · apply ih
-    · exact List.Nodup.of_cons hn
-    · assumption
-    · exact List.Disjoint.symm (List.disjoint_of_disjoint_cons_right
-      (List.Disjoint.symm hdisjoint))
-
-theorem add_is_maximal (x y : Vertex n) (F : Array (Vertex n))
-  (nbors : List (Vertex n)) (hn : nbors.Nodup) (hne : F ≠ #[]) :
-  ¬ ∃ v, ((add n c G C x y F nbors hne).push v).toList.Nodup ∧
-    colorAx n c G C ((add n c G C x y F nbors hne).push v) x := by
-
-  sorry
+      · apply hdisjoint
+        exact List.mem_of_mem_erase h
+      · by_contra ha
+        subst ha
+        exact List.Nodup.not_mem_erase hn h
+  · rw [add]; simp_all only
 
 
 def mkMaxFan (x y : Vertex n) (h : present n G (x, y)) : Array (Vertex n) :=

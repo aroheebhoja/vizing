@@ -73,8 +73,8 @@ def coloredNbors (v : Vertex n) : Nbors n :=
     exact List.nodup_finRange n
   ⟨N, ⟨ax1, ax2⟩⟩
 
-def incidentColorsOn (v : Vertex n) :=
-  ((C.val[v]'(by rw [C.sizeAx1]; exact v.isLt)).filterMap id).toList
+def incidentColorsOn (v : Vertex n) : List (Color c) :=
+  ((C.val[v]'(by rw [C.sizeAx1]; exact v.isLt)).filter Option.isSome).toList
 
 theorem nbhd_to_indexed_nbhd (v : Vertex n) (A : Array (Array (Color c)))
   (h1 : A.size = n) (h2 : ∀ i : Fin n, A[i].size = n) :
@@ -98,16 +98,13 @@ theorem nbhd_to_indexed_nbhd (v : Vertex n) (A : Array (Array (Color c)))
 
 theorem incident_colors_of_colored_nbors (v : Vertex n) :
   incidentColorsOn n c G C v =
-  (coloredNbors n c G C v).val.filterMap (fun x => color n c G C (v, x)) := by
+  List.filter Option.isSome
+  ((coloredNbors n c G C v).val.map (fun x => color n c G C (v, x))) := by
   unfold incidentColorsOn coloredNbors color
-  simp_all [List.filterMap_filter]
-  simp_all [List.filterMap_filter, Option.isSome_iff_ne_none]
+  simp_all
   have := nbhd_to_indexed_nbhd n c v C.val C.sizeAx1 C.sizeAx2
-  simp_all; congr
-  funext x
-  split_ifs
-  · assumption
-  · rfl
+  simp_all [List.filter_map]
+  congr
 
 theorem colored_nbors_subset_nbors (v : Vertex n) :
   (coloredNbors n c G C v).val ⊆ (nbhd n G v).val := by
@@ -132,3 +129,5 @@ def default : EdgeColoring n c G where
   representsEdgesAx := by simp
   validAx := by simp
   symmAx := by simp
+
+end Nbhd

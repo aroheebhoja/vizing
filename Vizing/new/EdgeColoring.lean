@@ -4,7 +4,6 @@ import Vizing.new.Nbhd
 
 set_option linter.dupNamespace false
 set_option push_neg.use_distrib true
--- set_option trace.profiler true
 
 namespace EdgeColoring
 open Graph
@@ -74,7 +73,8 @@ theorem setEdge_spec1 (hpres : present n G e) :
     have hsize := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
     have h1 := set_set_spec2 n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2 e.1 e.2 (by tauto)
     have h2 := set_set_spec1 n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
-      hsize.left hsize.right a e.2 e.1 e.1 e.2 (by right; exact edge_not_self_loop n G e hpres)
+      hsize.left hsize.right a e.2 e.1 e.1 e.2 (by
+      right; exact edge_not_self_loop n G e hpres)
     rw [h1] at h2
     exact Eq.symm h2
 
@@ -149,7 +149,8 @@ theorem setEdge_representsEdgesAx (hpres : present n G e) : ∀ f : Edge n,
     simp only [Fin.getElem_fin, ← aux] at hf
     exact C.representsEdgesAx f hf
 
-theorem setEdge_validAx (hpres : present n G e) (hvalid : edgeColorValid n c G C e a) :
+theorem setEdge_validAx (hpres : present n G e)
+  (hvalid : edgeColorValid n c G C e a) :
   ∀ u v : Vertex n,
     (((setEdge n c G C e a)[u]'(by
       rw [setEdge_sizeAx1]; exact u.isLt))[v]'(by
@@ -186,7 +187,8 @@ theorem setEdge_validAx (hpres : present n G e) (hvalid : edgeColorValid n c G C
     by_cases hv : e.2 = v
     · rw [← hv] at ⊢ huv
       simp_rw [spec1] at ⊢ huv
-      simp_rw [setEdge_spec5 n c G C e a hpres a, ← Fin.getElem_fin, (hvalid huv).left]
+      simp_rw [setEdge_spec5 n c G C e a hpres a, ← Fin.getElem_fin,
+      (hvalid huv).left]
       simp only [Fin.getElem_fin, zero_tsub, ↓reduceIte, zero_add]
     · have aux1 := setEdge_spec3 n c G C e a e.1 v (by tauto)
       have aux2 := setEdge_spec5 n c G C e a hpres ((C.val[e.1]'(by
@@ -199,9 +201,11 @@ theorem setEdge_validAx (hpres : present n G e) (hvalid : edgeColorValid n c G C
       rw [aux3]
       split_ifs with h1 h2
       any_goals ring_nf
-      · have aux4 := count_gt_one_if (C.val[e.1]'(by rw [C.sizeAx1]; exact e.1.isLt)) n
+      · have aux4 := count_gt_one_if (C.val[e.1]'(by
+          rw [C.sizeAx1]; exact e.1.isLt)) n
           (by exact C.sizeAx2 e.1) v e.2 (by
-            constructor; exact fun a ↦ hv (Eq.symm a); exact beq_iff_eq.mpr (Eq.symm h1))
+          constructor; exact fun a ↦ hv (Eq.symm a); exact
+          beq_iff_eq.mpr (Eq.symm h1))
         simp_rw [Fin.getElem_fin] at aux4
         apply ne_of_gt at aux4
         simp_all
@@ -234,7 +238,8 @@ theorem setEdge_symmAx (hpres : present n G e) : ∀ u v : Vertex n,
     simp_rw [← hl, ← hr, Fin.getElem_fin, h1, h2]
 
 def setEdgeColor (e : Edge n) (a : Color c)
-  (hpres : present n G e) (hvalid : edgeColorValid n c G C e a) : EdgeColoring n c G where
+  (hpres : present n G e) (hvalid : edgeColorValid n c G C e a) :
+  EdgeColoring n c G where
   val := setEdge n c G C e a
   sizeAx1 := setEdge_sizeAx1 n c G C e a
   sizeAx2 := setEdge_sizeAx2 n c G C e a
@@ -242,7 +247,7 @@ def setEdgeColor (e : Edge n) (a : Color c)
   validAx := setEdge_validAx n c G C e a hpres hvalid
   symmAx := setEdge_symmAx n c G C e a hpres
 
-def allColors : List (Fin c) := List.finRange c
+def allColors : List (Color c) := (List.finRange c).map some
 
 def freeColorsOn (v : Vertex n) :=
   (allColors c).filter (fun x => x ∉ incidentColorsOn n c G C v)
@@ -253,30 +258,47 @@ theorem existsFreeColor (h : ↑(maxDegree n G) < c) :
   simp [freeColorsOn]
   apply nodup_exists_mem_notMem_of_len_lt
   · apply List.nodup_iff_count_le_one.mpr
-    simp [incidentColorsOn, List.count_filterMap]
-    have := C.validAx v
-    simp_all
+    have hvalid := C.validAx v
+    simp_all [incidentColorsOn]
     intro a
-    by_cases h : (some a) ∈ C.val[v]'(by rw [C.sizeAx1]; exact v.isLt)
-    · apply le_iff_lt_or_eq.mpr
-      right
-      apply Array.getElem_of_mem at h
-      rcases h with ⟨i, hi1, hi2⟩
-      specialize this ⟨i, (by rw [C.sizeAx2] at hi1; exact hi1)⟩
-      simp_rw [Fin.getElem_fin, hi2] at *
-      simp [Array.count_eq_countP] at this
-      rw [← this]
-    · apply Array.count_eq_zero_of_not_mem at h
-      simp only [Fin.getElem_fin, Array.count_eq_countP] at h
-      rw [h]
-      linarith
+    by_cases ha : Option.isSome a
+    have := @List.count_filter (Color c) instBEqOfDecidableEq _ _ _
+      (C.val[v]'(by rw [C.sizeAx1]; exact v.isLt)).toList ha
+    rw [← Fin.getElem_fin, this]
+    simp [Array.count_toList, Array.count_eq_countP,
+      Bool.beq_eq_decide_eq] at hvalid ⊢
+    · by_cases h : a ∈ C.val[v]'(by rw [C.sizeAx1]; exact v.isLt)
+      · apply le_iff_lt_or_eq.mpr
+        right
+        rcases (Array.getElem_of_mem h) with ⟨i, hi1, hi2⟩
+        subst hi2
+        exact hvalid ⟨i, (by rw [C.sizeAx2] at hi1; exact hi1)⟩ ha
+      · apply Nat.le_one_iff_eq_zero_or_eq_one.mpr
+        left
+        apply Array.count_eq_zero_of_not_mem at h
+        simp only [Fin.getElem_fin, Array.count_eq_countP,
+        Bool.beq_eq_decide_eq] at h
+        exact h
+    · simp_all
+      apply Nat.le_one_iff_eq_zero_or_eq_one.mpr
+      left
+      simp [List.count_eq_zero.mpr]
   · simp [allColors]
-    exact List.nodup_finRange c
+    apply (List.nodup_map_iff _).mpr
+    · exact List.nodup_finRange c
+    · exact Option.some_injective (Fin c)
   · simp [incident_colors_of_colored_nbors, allColors, List.length_finRange]
-    have hle : (coloredNbors n c G C v).val.length < c := by
+    have hlt : (coloredNbors n c G C v).val.length < c := by
       have h1 := colored_nbhd_size_le n c G C v
       have h2 := maxDegree_spec n G v
       exact lt_of_le_of_lt (le_trans h1 h2) h
-    have hlt := List.length_filterMap_le
-      (fun x ↦ color n c G C (v, x)) ↑(coloredNbors n c G C v)
-    exact Nat.lt_of_le_of_lt hlt hle
+    have hle : (List.filter Option.isSome
+      (List.map (fun x ↦ color n c G C (v, x))
+      (coloredNbors n c G C v))).length ≤ (coloredNbors n c G C v).val.length := by
+      have := List.length_filter_le Option.isSome
+            (List.map (fun x ↦ color n c G C (v, x)) (coloredNbors n c G C v))
+      rw [List.length_map] at this
+      exact this
+    exact Nat.lt_of_le_of_lt hle hlt
+
+end EdgeColoring

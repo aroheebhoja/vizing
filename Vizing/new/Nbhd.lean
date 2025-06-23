@@ -14,11 +14,15 @@ and the notion of a valid edge coloring,
 where `EdgeColoring c` represents a c-edge-coloring of a graph on [n] vertices.
 -/
 
-variable (n : Nat) (c : Nat) (G : Graph n)
+section
+variable (c : Nat)
 abbrev Color := Option (Fin c)
 
 instance : DecidableEq (Color c) := by
   infer_instance
+end
+
+variable {n : Nat} (c : Nat) (G : Graph n)
 
 structure EdgeColoring where
   val : Array (Array (Color c))
@@ -27,7 +31,7 @@ structure EdgeColoring where
   representsEdgesAx : ∀ e : Edge n,
     ((val[e.1]'(by
     rw [sizeAx1]; exact e.1.isLt))[e.2]'(by
-    rw [sizeAx2]; exact e.2.isLt)).isSome → present n G e
+    rw [sizeAx2]; exact e.2.isLt)).isSome → present G e
   validAx :
     ∀ u v : Vertex n,
     ((val[u]'(by rw [sizeAx1]; exact u.isLt))[v]'(by rw [sizeAx2]; exact v.isLt)).isSome →
@@ -40,7 +44,7 @@ structure EdgeColoring where
     ((val[v]'(by rw [sizeAx1]; exact v.isLt))[u]'(by rw [sizeAx2]; exact u.isLt))
 deriving DecidableEq
 
-variable (C : EdgeColoring n c G)
+variable (C : EdgeColoring c G)
 
 def color (e : Edge n) :=
   (C.val[e.1]'(by rw [C.sizeAx1]; exact e.1.isLt))[e.2]'
@@ -97,32 +101,32 @@ theorem nbhd_to_indexed_nbhd (v : Vertex n) (A : Array (Array (Color c)))
     simp_all
 
 theorem incident_colors_of_colored_nbors (v : Vertex n) :
-  incidentColorsOn n c G C v =
+  incidentColorsOn c G C v =
   List.filter Option.isSome
-  ((coloredNbors n c G C v).val.map (fun x => color n c G C (v, x))) := by
+  ((coloredNbors c G C v).val.map (fun x => color c G C (v, x))) := by
   unfold incidentColorsOn coloredNbors color
   simp_all
-  have := nbhd_to_indexed_nbhd n c v C.val C.sizeAx1 C.sizeAx2
+  have := nbhd_to_indexed_nbhd c v C.val C.sizeAx1 C.sizeAx2
   simp_all [List.filter_map]
   congr
 
 theorem colored_nbors_subset_nbors (v : Vertex n) :
-  (coloredNbors n c G C v).val ⊆ (nbhd n G v).val := by
+  (coloredNbors c G C v).val ⊆ (nbhd G v).val := by
   simp [coloredNbors]
   intro x h'
   have := C.representsEdgesAx (v, x)
   simp_all [present]
 
 theorem colored_nbhd_size_le (v : Vertex n) :
-  (coloredNbors n c G C v).val.length ≤ degree n G v := by
-  let N := coloredNbors n c G C v
-  let X := nbhd n G v
+  (coloredNbors c G C v).val.length ≤ degree G v := by
+  let N := coloredNbors c G C v
+  let X := nbhd G v
   simp [degree]
   apply nodup_subset_eq_length_le
   · exact N.prop.right
-  · exact colored_nbors_subset_nbors n c G C v
+  · exact colored_nbors_subset_nbors c G C v
 
-def default : EdgeColoring n c G where
+def default : EdgeColoring c G where
   val := Array.replicate n (Array.replicate n none)
   sizeAx1 := by simp only [Array.size_replicate]
   sizeAx2 := by simp

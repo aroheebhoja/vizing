@@ -7,20 +7,23 @@ set_option linter.dupNamespace false
 
 namespace Graph
 
+abbrev Vertex (n : Nat) := Fin n
+abbrev Edge (n : Nat) := (Vertex n) × (Vertex n)
+
+section
 variable (n : Nat)
-abbrev Vertex := Fin n
-abbrev Edge := (Vertex n) × (Vertex n)
 
 def nborsSizeAx (N : List (Vertex n)) := N.length < n
 
 -- No multi-edges
 def nborsRepeatsAx (N : List (Vertex n)) := N.Nodup
-abbrev Nbors := {N : List (Vertex n) // nborsSizeAx n N ∧ nborsRepeatsAx n N}
+def Nbors (n : Nat) := {N : List (Vertex n) // nborsSizeAx n N ∧ nborsRepeatsAx n N}
 
 def graphSizeAx (G : Array (Nbors n)) := G.size = n
-abbrev Multigraph := {G : Array (Nbors n) // graphSizeAx n G}
+def Multigraph (n : Nat) := {G : Array (Nbors n) // graphSizeAx n G}
 
 -- Symmetry for undirected graphs: edges are bidirectional
+
 def graphSymmAx (G : Multigraph n) :=
   have ⟨G, h⟩ := G
   have : ∀ u : Vertex n, u.val < G.size := by
@@ -39,17 +42,16 @@ def graphNoSelfLoopsAx (G : Multigraph n) :=
 
 abbrev Graph := {G : Multigraph n // graphSymmAx n G ∧ graphNoSelfLoopsAx n G}
 
-variable (G : Graph n)
+end
+
+variable {n : Nat} (G : Graph n)
 
 def nbhd (x : Vertex n) : Nbors n :=
-  have ⟨⟨G, h⟩, _⟩ := G
-  have ⟨x, hx⟩ := x
-  have : x < G.size := by
-    rwa [h]
-  G[x]
+  G.val.val[x]'(by rw [G.val.prop]; exact x.isLt)
+
 
 def degree (x : Vertex n) : Fin n :=
-  let N := nbhd n G x
+  let N := nbhd G x
   have : N.val.length < n := by
     have := N.prop.left
     rwa [nborsSizeAx] at this
@@ -57,25 +59,27 @@ def degree (x : Vertex n) : Fin n :=
 
 def maxDegree : Nat :=
   let vertexSet := List.finRange n
-  let degrees := vertexSet.map (degree n G)
+  let degrees := vertexSet.map (degree G)
   match degrees.argmax id with
   | none => 0
   | some d => d
 
-theorem maxDegree_lt : n > 0 → maxDegree n G < n := by
+theorem maxDegree_lt :
+  n > 0 → maxDegree G < n := by
   intro h
   simp_all only [maxDegree]
   split
   case _ _ _ => exact h
   case _ _ k _ => simp
 
-theorem maxDegree_spec : ∀ x : Vertex n, degree n G x ≤ maxDegree n G := by
+theorem maxDegree_spec :
+  ∀ x : Vertex n, degree G x ≤ maxDegree G := by
   intro x
   simp [maxDegree]
   split
   all_goals simp_all
   · simp [degree]
-    have := (nbhd n G x).prop.left
+    have := (nbhd G x).prop.left
     simp_all [nborsSizeAx]
   · rename_i _ d h
     apply List.argmax_eq_some_iff.mp at h
@@ -85,7 +89,7 @@ theorem maxDegree_spec : ∀ x : Vertex n, degree n G x ≤ maxDegree n G := by
 
 -- Edges in the edge set are present in the graph
 def edgeSetRepresentsGraphAx (E : List (Edge n)) :=
-  ∀ e, e ∈ E → e.1 ∈ (nbhd n G e.2).val ∧ e.2 ∈ (nbhd n G e.1).val
+  ∀ e, e ∈ E → e.1 ∈ (nbhd G e.2).val ∧ e.2 ∈ (nbhd G e.1).val
 
 -- For undirected graphs: edges go both ways
 def edgeSetSymmAx (E : List (Edge n)) :=
@@ -98,18 +102,18 @@ def edgeSetNoSelfLoopsAx (E : List (Edge n)) :=
   ∀ e ∈ E, e.1 ≠ e.2
 
 abbrev EdgeSet := {E : List (Edge n) //
-  edgeSetRepresentsGraphAx n G E ∧ edgeSetSymmAx n E ∧ edgeSetNodupAx n E ∧ edgeSetNoSelfLoopsAx n E}
+  edgeSetRepresentsGraphAx G E ∧ edgeSetSymmAx E ∧ edgeSetNodupAx E ∧ edgeSetNoSelfLoopsAx E}
 
-variable (E : EdgeSet n G)
+variable (E : EdgeSet G)
 
-def remove (e : Edge n) (h : e ∈ E.val) : EdgeSet n G :=
+def remove (e : Edge n) (h : e ∈ E.val) : EdgeSet G :=
   have ⟨E, ⟨ax1, ax2, ax3, ax4⟩⟩ := E
   let E' := E.removeAll [e, (e.2, e.1)]
-  have aux1 : edgeSetRepresentsGraphAx n G E' := by
+  have aux1 : edgeSetRepresentsGraphAx G E' := by
     simp [E', List.removeAll, edgeSetRepresentsGraphAx]
     intro a b h _ _
     exact ax1 (a, b) h
-  have aux2 : edgeSetSymmAx n E' := by
+  have aux2 : edgeSetSymmAx E' := by
     simp only [E', List.removeAll, edgeSetSymmAx]
     simp [List.mem_pair, Prod.eq_iff_fst_eq_snd_eq]
     intro a b
@@ -122,33 +126,33 @@ def remove (e : Edge n) (h : e ∈ E.val) : EdgeSet n G :=
       constructor
       exact (ax2 (a, b)).mpr h4
       tauto
-  have aux3 : edgeSetNodupAx n E' := by
+  have aux3 : edgeSetNodupAx E' := by
     have := List.Pairwise.filter
         (l := E)
         (R := (fun x1 x2 ↦ x1 ≠ x2))
         (fun x ↦ !List.elem x [e, (e.2, e.1)])
     apply this
     exact ax3
-  have aux4 : edgeSetNoSelfLoopsAx n E' := by
+  have aux4 : edgeSetNoSelfLoopsAx E' := by
     intro e he
     apply ax4
     exact List.mem_of_mem_filter he
   ⟨E', ⟨aux1, aux2, aux3, aux4⟩⟩
 
-def toEdgeSet (G : Graph n) : EdgeSet n G :=
+def toEdgeSet (G : Graph n) : EdgeSet G :=
   let A := G.val.val
   let hsize := G.val.prop
   let ⟨h1, h2⟩ := G.prop
-  let this := fun u ↦ (nbhd n G u).val.map (u, ·)
+  let this := fun u ↦ (nbhd G u).val.map (u, ·)
   let E := (List.finRange n).flatMap this
-  have ax1 : edgeSetRepresentsGraphAx n G E := by
+  have ax1 : edgeSetRepresentsGraphAx G E := by
     intro e he
     simp [E, this] at he
     rcases he with ⟨_, _, ⟨h3, h4⟩⟩
     rcases Prod.eq_iff_fst_eq_snd_eq.mp h4 with ⟨_, _⟩
     simp_all [nbhd]
     exact (h1 e.2 e.1).mp h3
-  have ax2 : edgeSetSymmAx n E := by
+  have ax2 : edgeSetSymmAx E := by
     intro e
     constructor
     · intro h
@@ -162,10 +166,10 @@ def toEdgeSet (G : Graph n) : EdgeSet n G :=
       constructor
       · assumption
       · rfl
-  have ax3 : edgeSetNodupAx n E := by
-    have aux : ∀ u : Vertex n, (nbhd n G u).val.Nodup := by
+  have ax3 : edgeSetNodupAx E := by
+    have aux : ∀ u : Vertex n, (nbhd G u).val.Nodup := by
       intro u
-      exact (nbhd n G u).prop.right
+      exact (nbhd G u).prop.right
     apply List.nodup_flatMap.mpr
     simp [this]
     constructor
@@ -183,7 +187,7 @@ def toEdgeSet (G : Graph n) : EdgeSet n G :=
     simp_all
     intro _ _ _ _ this' _
     exact this (Eq.symm this')
-  have ax4 : edgeSetNoSelfLoopsAx n E := by
+  have ax4 : edgeSetNoSelfLoopsAx E := by
     intro e he
     simp [graphNoSelfLoopsAx] at h2
     simp [edgeSetRepresentsGraphAx, nbhd] at ax1
@@ -193,8 +197,8 @@ def toEdgeSet (G : Graph n) : EdgeSet n G :=
     simp_all
   ⟨E, ⟨ax1, ax2, ax3, ax4⟩⟩
 
-  variable (E : EdgeSet n G)
+  variable (E : EdgeSet G)
 
-  def present (e : Edge n) := e.1 ∈ (nbhd n G e.2).val ∧ e.2 ∈ (nbhd n G e.1).val
+  def present (e : Edge n) := e.1 ∈ (nbhd G e.2).val ∧ e.2 ∈ (nbhd G e.1).val
 
 end Graph

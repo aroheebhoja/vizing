@@ -1,267 +1,363 @@
 import Vizing.Graph
-import Mathlib.Tactic
+import Vizing.SetSet
+import Vizing.Nbhd
+
 set_option linter.dupNamespace false
+set_option push_neg.use_distrib true
 
 namespace EdgeColoring
 open Graph
+open Aux
 
 /-
 Implementation of a basic edge-coloring library,
 where `EdgeColoring c` represents a c-edge-coloring of a graph on [n] vertices.
 -/
 
-variable (c : Nat) (n : Nat) (G : Graph n)
-  (nonempty : 0 < c)
-  (graphsize : G.size = n)
-  (edgeSet_symm : ∀ u v : Vertex n, (u, v) ∈ (edgeSet n G graphsize) ↔ v ∈ nbors n G graphsize u ∧ u ∈ nbors n G graphsize v)
-  (nbors_symm : ∀ u v : Vertex n, v ∈ nbors n G graphsize u ↔ u ∈ nbors n G graphsize v)
+variable {n : Nat} {c : Nat} (G : Graph n) (C : EdgeColoring c G)
 
--- We choose 0 as the default value, to represent an uncolored edge
+/-
+Can't be a color we already used!
+(we don't need to specify any other edge invariants,
+   because we know the edge is present in the graph)
+-/
 
-abbrev Color := Fin (c + 1)
-abbrev EdgeColoring := Array (Array (Color c))
+def allColors : List (Color c) := (List.finRange c).map some
 
-variable
-  (C : EdgeColoring c)
-  (edgecoloring1 : C.size = n ∧ ∀ x ∈ C, x.size = n)
+def freeColorsOn (v : Vertex n) :=
+  (allColors).filter (fun x => x ∉ incidentColorsOn c G C v)
 
-include edgecoloring1
+def edgeColorValid (e : Edge n) (a : Color c) : Prop :=
+  a.isNone ∨ (a ∈ freeColorsOn G C e.1 ∧ a ∈ freeColorsOn G C e.2)
 
-theorem cx' (v : Vertex n) : v < C.size := by
-  rw [(edgecoloring1).left]
-  exact v.isLt
+def edgeColorValidAux (e : Edge n) (a : Color c) : Prop :=
+  a.isSome →
+  Array.count a
+  (C.val[e.1]'(by rw [C.sizeAx1]; exact e.1.isLt)) = 0 ∧
+  Array.count a
+  (C.val[e.2]'(by rw [C.sizeAx1]; exact e.2.isLt)) = 0
 
--- Accessing the color of an edge is always in bound
-theorem cx (e : Edge n) : e.1 < C.size ∧
-  e.2 < (C[e.1]'(cx' c n C edgecoloring1 e.1)).size := by
-  constructor
-  · exact cx' c n C edgecoloring1 e.1
-  · rw [(edgecoloring1).right]
-    · exact e.2.isLt
-    · exact Array.mem_of_getElem rfl
-
-def color (e : Edge n) :=
-  have := cx c n C edgecoloring1 e
-  C[e.1][e.2]
-
-def coloring_valid (C : EdgeColoring c) (h : C.size = n ∧ ∀ x ∈ C, x.size = n) :=
-  ∀ v : Vertex n, ((C[v]'(cx' c n C h v)).filter (fun c => c ≠ 0)).size ≤ degree n G graphsize v
-
-def default : EdgeColoring c :=
-  mkArray G.size (mkArray G.size 0)
-
-omit edgecoloring1 in
-include graphsize in
-theorem default_spec :
-  (default c n G).size = n ∧ ∀ x ∈ (default c n G), x.size = n := by
-  simp only [default, Array.size_mkArray, Array.mem_mkArray, ne_eq, List.length_eq_zero,
-    Array.toList_eq_nil_iff, and_imp, forall_eq_apply_imp_iff]
-  constructor
-  exact graphsize
-  intro h; exact graphsize
-
-omit edgecoloring1 in
-theorem default_spec' : coloring_valid c n G graphsize
-  (default c n G) (default_spec c n G graphsize) := by
-  simp [coloring_valid, default]
-
-def allColors : List (Color c) :=
-  let L := List.finRange (c + 1)
-  have : 0 < c + 1 := by
-    exact Nat.add_pos_left nonempty 1
-  L.erase ⟨0, this⟩
+theorem edgeColorValid_spec (e : Edge n) (a : Color c) (h : edgeColorValid G C e a) :
+  edgeColorValidAux G C e a := by
+  simp [edgeColorValid, freeColorsOn, incidentColorsOn] at h
+  rcases h with h | h
+  · simp_all [edgeColorValidAux]
+  · rcases h with ⟨⟨_, h1⟩, ⟨_, h2⟩⟩
+    intro h
+    simp [Option.isSome_iff_ne_none.mp h] at h1 h2
+    constructor
+    all_goals
+      apply Array.count_eq_zero_of_not_mem
+      assumption
 
 variable
-  (edgecoloring2 : coloring_valid c n G graphsize C edgecoloring1)
-  (edgecoloring3 : ∀ u v, u ∉ nbors n G graphsize v → color c n G C edgecoloring1 (u, v) = 0)
+  (e : Edge n) (a : Color c)
 
-def setEdgeColor (e : Edge n) (a : Color c) : EdgeColoring c :=
-  let e' := (e.2, e.1)
-  have := cx c n C edgecoloring1 e
-  let C' := C.set e.1 <| C[e.1].set e.2 a
-  have h1 : C'.size = n := by
-    simp only [Fin.getElem_fin, Array.size_set, C']; exact edgecoloring1.left
-  have h2 : ∀ x ∈ C', x.size = n := by
-    simp only [Fin.getElem_fin, C']
-    intro x hx
-    have := Array.mem_or_eq_of_mem_set hx
-    rcases this with l | r
-    exact edgecoloring1.right x l
-    simp only [r, Array.size_set, Array.getElem_mem, edgecoloring1, C']
-  have := cx c n C' ⟨h1, h2⟩ e'
-  C'.set e'.1 <| C'[e'.1].set e'.2 a
+def setEdge :=
+  let h := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
+  set_set n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
+    (by exact h.left) (by exact h.right) a e.2 e.1
 
-example (x : α) (A : Array α) (i : Nat) (h : i < A.size) :
-  x = A[i] → x ∈ A := by
-  exact fun a ↦ Array.mem_of_getElem (id (Eq.symm a))
+theorem edge_not_self_loop (hpres : present G e) : e.1 ≠ e.2 := by
+  have := G.prop.right
+  contrapose! this
+  simp [graphNoSelfLoopsAx]; split
+  simp [present, nbhd] at hpres
+  rcases hpres with ⟨l, r⟩
+  simp_all
+  use e.2
 
-theorem setEdgeColor_spec (e : Edge n) (a : Color c) :
-  (setEdgeColor c n G C edgecoloring1 e a).size = n ∧
-  ∀ x ∈ (setEdgeColor c n G C edgecoloring1 e a), x.size = n := by
-  simp only [setEdgeColor, Fin.getElem_fin, Array.size_set]
-  constructor
-  exact edgecoloring1.left
-  intro x hx
-  have := Array.mem_or_eq_of_mem_set hx
-  rcases this with this | this
-  · have := Array.mem_or_eq_of_mem_set this
-    rcases this with l | r
-    exact edgecoloring1.right x l
-    simp only [r, Array.size_set, Array.getElem_mem, edgecoloring1]
-  · have aux := cx c n C edgecoloring1 e
-    have h1 : ((Array.set C (↑e.fst) (C[↑e.fst].set (↑e.snd) a))).size = n := by
-      simp only [Fin.getElem_fin, Array.size_set, edgecoloring1]
-    have h2 : ∀ x ∈ ((Array.set C (↑e.fst) (C[↑e.fst].set (↑e.snd) a))), x.size = n := by
-      intro x hx
-      have := Array.mem_or_eq_of_mem_set hx
-      rcases this with l | r
-      exact edgecoloring1.right x l
-      simp [r, Array.size_set, Array.getElem_mem]
-      have : C[↑e.fst] ∈ C := by
-        exact Array.mem_of_getElem rfl
-      exact edgecoloring1.right C[↑e.fst] this
-    have h3 : ((Array.set C (↑e.fst) (C[↑e.fst].set (↑e.snd) a)))[↑e.snd].size = n := by
-      simp_all only [Fin.is_lt, Fin.getElem_fin, Array.getElem_mem]
-    have h4 := Array.size_set ((Array.set C (↑e.fst) (C[↑e.fst].set (↑e.snd) a))[↑e.snd])
-    simp only [h3] at h4
-    simp_all only [Fin.is_lt, Fin.getElem_fin, Array.size_set, Array.getElem_mem, implies_true]
+theorem setEdge_symm (hpres : present G e) :
+  setEdge G C e a = setEdge G C (e.2, e.1) a := by
+  simp [setEdge]
+  apply set_set_comm
+  right
+  exact edge_not_self_loop G e hpres
 
-include edgecoloring3 in
-theorem aux (e : Edge n) (a : Color c) (h : e ∈ edgeSet n G graphsize) :
-  ∀ u v, u ∉ nbors n G graphsize v → color c n G (setEdgeColor c n G C edgecoloring1 e a)
-  (setEdgeColor_spec c n G C edgecoloring1 e a) (u, v) = 0 := by
-  intro u v h2
-  specialize edgecoloring3 u v h2
-  simp [setEdgeColor, color] at *
-  let C' := setEdgeColor c n G C edgecoloring1 e a
-  have h' := setEdgeColor_spec c n G C edgecoloring1 e a
-  have aux := cx' c n C' h'
-  have : ∀ v, v ≠ e.1 ∧ v ≠ e.2 → C[v] = C'[v]'(aux v) := by
-    intro v h
-    simp [C', setEdgeColor]
-    repeat rw [Array.getElem_set_ne]
-    all_goals apply Fin.val_ne_of_ne; apply Ne.symm
-    exact h.left
-    exact h.right
-  rw [← edgecoloring3]
-  have : ∀ f : Edge n, f.1 ≠ e.1 ∧ f.1 ≠ e.2 → color c n G C edgecoloring1 f = color c n G C' h' f := by
-    intro f hf
-    simp [color, C', setEdgeColor]
-    have aux := this f.1 hf
-    simp [C', setEdgeColor] at aux
-    simp [aux]
-  simp [color, C', setEdgeColor] at this
-  specialize this u v
-  apply Eq.symm
-  apply this
-  sorry
-  sorry
+theorem setEdge_sizeAx1 : (setEdge G C e a).size = n := by
+  have h := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
+  exact (set_set_preserves_size n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
+    (by exact h.left) (by exact h.right) a e.2 e.1).left
 
-def setEdgeColor_spec' (e : Edge n) (a : Color c) (h : e ∈ edgeSet n G graphsize) :
-  coloring_valid c n G graphsize (setEdgeColor c n G C edgecoloring1 e a)
-  (setEdgeColor_spec c n G C edgecoloring1 e a) := by
-  let C' := setEdgeColor c n G C edgecoloring1 e a
-  have h' := setEdgeColor_spec c n G C edgecoloring1 e a
-  have aux := cx' c n C' h'
-  have : ∀ v, v ≠ e.1 ∧ v ≠ e.2 → C[v] = C'[v]'(aux v) := by
-    intro v h
-    simp [C', setEdgeColor]
-    repeat rw [Array.getElem_set_ne]
-    all_goals apply Fin.val_ne_of_ne; apply Ne.symm
-    exact h.left
-    exact h.right
-  unfold coloring_valid degree at *
+theorem setEdge_sizeAx2 : ∀ i : Vertex n,
+  ((setEdge G C e a)[i]'(by
+    rw [setEdge_sizeAx1]; exact i.isLt)).size = n := by
+  have h := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
+  exact (set_set_preserves_size n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
+    (by exact h.left) (by exact h.right) a e.2 e.1).right
+
+theorem setEdge_spec1 (hpres : present G e) :
+  ((setEdge G C e a)[e.1.val]'(by
+    rw [setEdge_sizeAx1]; exact e.1.isLt))[e.2.val]'(by
+    rw [← Fin.getElem_fin, setEdge_sizeAx2]; exact e.2.isLt) = a := by
+    have hsize := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
+    have h1 := set_set_spec2 n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2 e.1 e.2 (by tauto)
+    have h2 := set_set_spec1 n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
+      hsize.left hsize.right a e.2 e.1 e.1 e.2 (by
+      right; exact edge_not_self_loop G e hpres)
+    rw [h1] at h2
+    exact Eq.symm h2
+
+theorem setEdge_spec2 :
+  ((setEdge G C e a)[e.2.val]'(by
+    rw [setEdge_sizeAx1]; exact e.2.isLt))[e.1.val]'(by
+    rw [← Fin.getElem_fin, setEdge_sizeAx2]; exact e.1.isLt) = a := by
+    have hsize := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
+    have h2 := set_set_spec2 n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
+      hsize.left hsize.right a e.2 e.1 e.2 e.1 (by tauto)
+    simp [setEdge]
+    exact h2
+
+theorem setEdge_spec3 : ∀ u v : Vertex n,
+  (e.1 ≠ u ∨ e.2 ≠ v) ∧ (e.2 ≠ u ∨ e.1 ≠ v) →
+  (C.val[u.val]'(by
+    rw [C.sizeAx1]; exact u.isLt))[v.val]'(by
+    rw [← Fin.getElem_fin, C.sizeAx2]; exact v.isLt) =
+    ((setEdge G C e a)[u.val]'(by
+    rw [setEdge_sizeAx1]; exact u.isLt))[v.val]'(by
+    rw [← Fin.getElem_fin, setEdge_sizeAx2]; exact v.isLt) := by
+    intro u v h
+    have hsize := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
+    have h1 := set_set_spec1 n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2 u v (by tauto)
+    have h2 := set_set_spec1 n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
+      hsize.left hsize.right a e.2 e.1 u v (by tauto)
+    rwa [← h1] at h2
+
+theorem setEdge_spec4 : ∀ u : Vertex n,
+  (e.1 ≠ u ∧ e.2 ≠ u) →
+  C.val[u.val]'(by
+    rw [C.sizeAx1]; exact u.isLt) =
+    (setEdge G C e a)[u.val]'(by
+    rw [setEdge_sizeAx1]; exact u.isLt) := by
+    intro u h
+    have hsize := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
+    have h1 := set_set_spec3 n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2 u (by tauto)
+    have h2 := set_set_spec3 n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
+      hsize.left hsize.right a e.2 e.1 u (by tauto)
+    rwa [← h1] at h2
+
+theorem setEdge_spec5 (hpres : present G e) :
+  ∀ b : Color c,
+    Array.count b ((setEdge G C e a)[e.1.val]'(by
+    rw [setEdge_sizeAx1]; exact e.1.isLt)) =
+    Array.count b (C.val[e.1.val]'(by rw [C.sizeAx1]; exact e.1.isLt)) -
+    (if (C.val[e.1.val]'(by rw [C.sizeAx1]; exact e.1.isLt))[e.2.val]'(by
+      rw [← Fin.getElem_fin, C.sizeAx2 e.1]; exact e.2.isLt) = b then 1 else 0) +
+    (if a = b then 1 else 0) := by
+    intro b
+    have hsize := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
+    have h1 := count_set_set n C.val C.sizeAx1 C.sizeAx2 a b e.1 e.2
+    have h2 := count_set_set' n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
+      hsize.left hsize.right a b e.2 e.1 (by exact Ne.symm (edge_not_self_loop G e hpres))
+    have h3 := set_set_spec2 n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2 e.1 e.2 (by tauto)
+    rw [h1] at h2
+    simp [setEdge, Fin.getElem_fin] at ⊢ h2
+    exact h2
+
+theorem setEdge_representsEdgesAx (hpres : present G e) : ∀ f : Edge n,
+    (((setEdge G C e a)[f.1]'(by
+    rw [setEdge_sizeAx1]; exact f.1.isLt))[f.2]'(by
+    rw [setEdge_sizeAx2]; exact f.2.isLt)).isSome → present G f := by
+  have hpres_symm : present G (e.2, e.1) := by
+    exact ⟨hpres.right, hpres.left⟩
+  intro f hf
+  by_cases h : (f = e) ∨ (f = (e.2, e.1))
+  · rcases h with h | h
+    all_goals rwa [h]
+  · simp_rw [Prod.eq_iff_fst_eq_snd_eq] at h
+    push_neg at h
+    have aux := setEdge_spec3 G C e a f.1 f.2 (by tauto)
+    simp only [Fin.getElem_fin, ← aux] at hf
+    exact C.representsEdgesAx f hf
+
+theorem setEdge_validAx (hpres : present G e)
+  (hval : edgeColorValid G C e a) :
+  ∀ u v : Vertex n,
+    (((setEdge G C e a)[u]'(by
+      rw [setEdge_sizeAx1]; exact u.isLt))[v]'(by
+      rw [setEdge_sizeAx2]; exact v.isLt)).isSome →
+    Array.count (((setEdge G C e a)[u]'(by
+      rw [setEdge_sizeAx1]; exact u.isLt))[v]'(by
+      rw [setEdge_sizeAx2]; exact v.isLt))
+      ((setEdge G C e a)[u]'(by
+      rw [setEdge_sizeAx1]; exact u.isLt))
+      = 1 := by
+  have hvalid := edgeColorValid_spec G C e a hval
+  intro u v huv
+  have := edge_not_self_loop G e hpres
+  by_cases h : e.1 ≠ u ∧ e.2 ≠ u
+  · have h1 := setEdge_spec3 G C e a u v (by tauto)
+    have h2 := setEdge_spec4 G C e a u h
+    simp_rw [Fin.getElem_fin, ← h1, ← h2] at ⊢ huv
+    exact C.validAx u v huv
+  · push_neg at h
+    have spec1 := setEdge_spec1 G C e a hpres
+    have spec2 := setEdge_spec2 G C e a
+    clear hval
+    wlog hu : e.1 = u generalizing e
+    specialize this (e.2, e.1)
+    have symm := setEdge_symm G C (e.2, e.1) a (And.comm.mp hpres)
+    simp at symm
+    simp [symm] at this
+    apply this
+    · exact And.comm.mp (hpres)
+    · simp [edgeColorValid] at hvalid ⊢
+      intro h
+      exact And.comm.mp (hvalid h)
+    any_goals simp_all
+    (expose_names; exact fun a ↦ hu_1 (id (Eq.symm a)))
+    simp_rw [← hu] at *
+    by_cases hv : e.2 = v
+    · rw [← hv] at ⊢ huv
+      simp_rw [spec1] at ⊢ huv
+      simp_rw [setEdge_spec5 G C e a hpres a, ← Fin.getElem_fin,
+      (hvalid huv).left]
+      simp only [Fin.getElem_fin, zero_tsub, ↓reduceIte, zero_add]
+    · have aux1 := setEdge_spec3 G C e a e.1 v (by tauto)
+      have aux2 := setEdge_spec5 G C e a hpres ((C.val[e.1]'(by
+        rw [C.sizeAx1]; exact e.1.isLt))[v]'(by
+        rw [C.sizeAx2]; exact v.isLt))
+      simp_rw [← aux1] at huv
+      have aux3 := C.validAx e.1 v huv
+      simp_rw [Fin.getElem_fin] at *
+      simp_rw [← aux1, aux2]
+      rw [aux3]
+      split_ifs with h1 h2
+      any_goals ring_nf
+      · have aux4 := one_lt_count (C.val[e.1]'(by
+          rw [C.sizeAx1]; exact e.1.isLt))
+          ⟨v, by simp_rw [C.sizeAx2]; exact v.isLt⟩
+          ⟨e.2, by simp_rw [C.sizeAx2]; exact e.2.isLt⟩
+          (by simp; exact Fin.val_ne_of_ne fun a ↦ hv (Eq.symm a))
+          (by exact beq_iff_eq.mpr (Eq.symm h1))
+        simp_rw [Fin.getElem_fin] at aux4
+        apply ne_of_gt at aux4
+        simp_all
+      · rename_i h2
+        rw [← h2] at aux3 huv
+        obtain ⟨hl, _⟩ := hvalid huv
+        apply Array.not_mem_of_count_eq_zero at hl
+        rw [h2] at hl
+        contrapose! hl
+        simp
+
+theorem setEdge_symmAx (hpres : present G e) : ∀ u v : Vertex n,
+    (((setEdge G C e a)[u]'(by
+      rw [setEdge_sizeAx1]; exact u.isLt))[v]'(by
+      rw [setEdge_sizeAx2]; exact v.isLt)) =
+    (((setEdge G C e a)[v]'(by
+      rw [setEdge_sizeAx1]; exact v.isLt))[u]'(by
+      rw [setEdge_sizeAx2]; exact u.isLt)) := by
+  intro u v
+  by_cases h : (e.1 ≠ u ∨ e.2 ≠ v) ∧ (e.2 ≠ u ∨ e.1 ≠ v)
+  · have h1 := setEdge_spec3 G C e a u v h
+    have h2 := setEdge_spec3 G C e a v u (by tauto)
+    simp_rw [Fin.getElem_fin, ← h1, ← h2]
+    exact C.symmAx u v
+  · push_neg at h
+    rcases h with (⟨hl, hr⟩ | ⟨hl, hr⟩)
+    all_goals
+    have h1 := setEdge_spec1 G C e a hpres
+    have h2 := setEdge_spec2 G C e a
+    simp_rw [← hl, ← hr, Fin.getElem_fin, h1, h2]
+
+def setEdgeColor (e : Edge n) (a : Color c)
+  (hpres : present G e) (hvalid : edgeColorValid G C e a) :
+  EdgeColoring c G where
+  val := setEdge G C e a
+  sizeAx1 := setEdge_sizeAx1 G C e a
+  sizeAx2 := setEdge_sizeAx2 G C e a
+  representsEdgesAx := setEdge_representsEdgesAx G C e a hpres
+  validAx := setEdge_validAx G C e a hpres hvalid
+  symmAx := setEdge_symmAx G C e a hpres
+
+theorem existsFreeColor (h : ↑(maxDegree G) < c) :
+  ∀ v : Vertex n, (freeColorsOn G C v) ≠ [] := by
   intro v
-  by_cases h : v ≠ e.1 ∧ v ≠ e.2
-  · specialize this v h
-    unfold C' at this
-    rw [← this]
-    exact edgecoloring2 v
-  · by_cases h2 : v = e.1
-    dsimp -zeta [setEdgeColor]
-    rw [h2]
-    repeat rw [Array.getElem_set_self]
-    simp only
-    sorry
-    sorry
-    sorry
+  simp [freeColorsOn]
+  apply exists_mem_notMem_of_nodup_of_len_lt
+  · apply List.nodup_iff_count_le_one.mpr
+    have hvalid := C.validAx v
+    simp_all [incidentColorsOn]
+    intro a
+    by_cases ha : Option.isSome a
+    have := @List.count_filter (Color c) instBEqOfDecidableEq _ _ _
+      (C.val[v]'(by rw [C.sizeAx1]; exact v.isLt)).toList ha
+    rw [← Fin.getElem_fin, this]
+    simp [Array.count_toList, Array.count_eq_countP,
+      Bool.beq_eq_decide_eq] at hvalid ⊢
+    · by_cases h : a ∈ C.val[v]'(by rw [C.sizeAx1]; exact v.isLt)
+      · apply le_iff_lt_or_eq.mpr
+        right
+        rcases (Array.getElem_of_mem h) with ⟨i, hi1, hi2⟩
+        subst hi2
+        exact hvalid ⟨i, (by rw [C.sizeAx2] at hi1; exact hi1)⟩ ha
+      · apply Nat.le_one_iff_eq_zero_or_eq_one.mpr
+        left
+        apply Array.count_eq_zero_of_not_mem at h
+        simp only [Fin.getElem_fin, Array.count_eq_countP,
+        Bool.beq_eq_decide_eq] at h
+        exact h
+    · simp_all
+      apply Nat.le_one_iff_eq_zero_or_eq_one.mpr
+      left
+      simp [List.count_eq_zero.mpr]
+  · simp [allColors]
+    apply (List.nodup_map_iff _).mpr
+    · exact List.nodup_finRange c
+    · exact Option.some_injective (Fin c)
+  · simp [incident_colors_of_colored_nbors, allColors, List.length_finRange]
+    have hlt : (coloredNbors c G C v).val.length < c := by
+      have h1 := colored_nbhd_size_le c G C v
+      have h2 := maxDegree_spec G v
+      exact lt_of_le_of_lt (le_trans h1 h2) h
+    have hle : (List.filter Option.isSome
+      (List.map (fun x ↦ color c G C (v, x))
+      (coloredNbors c G C v).val)).length ≤
+      (coloredNbors c G C v).val.length := by
+      have := List.length_filter_le Option.isSome
+            (List.map (fun x ↦ color c G C (v, x)) (coloredNbors c G C v).val)
+      rw [List.length_map] at this
+      exact this
+    exact Nat.lt_of_le_of_lt hle hlt
 
-def getIncidentColors (v : Vertex n) : List (Color c) :=
-  (nbors n G graphsize v).map (fun a => color c n G C edgecoloring1 (v, a))
+theorem setEdgeColor_freeOn (e : Edge n) (hpres : present G e) : (color c G C e).isSome →
+  color c G C e ∈ freeColorsOn G (setEdgeColor G C e none hpres (by simp [edgeColorValid])) e.1 ∧
+  color c G C e ∈ freeColorsOn G (setEdgeColor G C e none hpres (by simp [edgeColorValid])) e.2 := by
+  intro h
+  have := C.validAx
+  have hloop := edge_not_self_loop G e hpres
+  have aux := set_set_spec3 n C.val C.sizeAx1 C.sizeAx2 none e.1 e.2 e.2 hloop
+  simp [color, freeColorsOn, incidentColorsOn] at *
+  repeat any_goals apply And.intro
+  any_goals
+    simp [allColors]
+    apply Option.isSome_iff_exists.mp at h
+    rcases h with ⟨a, ha⟩
+    use a; exact Eq.symm ha
+  · left
+    specialize this e.1 e.2 h
+    apply Array.not_mem_of_count_eq_zero
+    simp [setEdgeColor, setEdge]
+    have := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 none e.1 e.2
+    have := set_set_spec3 n (set_set n C.val C.sizeAx1 C.sizeAx2 none e.1 e.2)
+      this.left this.right none e.2 e.1 e.1 (by exact fun a ↦ hloop (Eq.symm a))
+    simp_rw [← Fin.getElem_fin, ← this]
+    rw [count_set_set]
+    split_ifs <;> simp_all
+    rename_i hc
+    rw [← Option.ne_none_iff_isSome] at h
+    exact h (Eq.symm hc)
+  · left
+    specialize this e.2 e.1 (by simp_rw [← Fin.getElem_fin, C.symmAx e.1 e.2] at h; assumption)
+    apply Array.not_mem_of_count_eq_zero
+    simp [setEdgeColor, setEdge]
+    simp_rw [← Fin.getElem_fin, count_set_set, C.symmAx]
+    simp [← aux]
+    rw [this]
+    simp_rw [← Option.ne_none_iff_isSome, ← Fin.getElem_fin, C.symmAx e.1 e.2] at h
+    simp [Option.isSome_iff_ne_none]
+    exact Ne.symm h
 
-def getNborWithColor? (v : Vertex n) (a : Color c) : Option (Vertex n) :=
-  let choices := (nbors n G graphsize v).filter (fun x => color c n G C edgecoloring1 (v, x) = a)
-  match choices with
-  | [] => none
-  | u :: _ => some u
-
-def getFreeColors (v : Vertex n) : List (Color c) :=
-  let incident := getIncidentColors c n G graphsize C edgecoloring1 v
-  (allColors c nonempty).filter (fun x => x ∉ incident)
-
-def freeOn (a : Color c) (v : Vertex n) :=
-  a ∈ getFreeColors c n G nonempty graphsize C edgecoloring1 v
-
-def incidentOn (a : Color c) (v : Vertex n) :=
-  a ∈ getIncidentColors c n G graphsize C edgecoloring1 v
-
-include edgecoloring2 in
-theorem existsFreeColor (h : maxDegree n G graphsize < c) :
-  ∀ v, getFreeColors c n G nonempty graphsize C edgecoloring1 v ≠ [] := by
-  intro v hv
-  have h1 : C[v].size = n := by
-    apply edgecoloring1.right
-    exact Array.mem_of_getElem rfl
-  simp [*, getFreeColors, getIncidentColors, allColors, color, nbors] at hv
-  let X := (List.finRange (c + 1)).erase 0
-  let Y := (C[v].filter (fun a => a ≠ 0))
-  have h2 : ∀ a ∈ X, a ∈ C[v] := by
-    intro a ha
-    have := hv a ha
-    rcases this with ⟨x, hx1, hx2⟩
-    exact Array.mem_of_getElem hx2
-  have h3 : ∀ a ∈ X, a ∈ Y := by
-    intro a ha
-    have aux1 := h2 a ha
-    simp only [X, List.finRange, List.ofFn_succ, List.erase_cons_head, List.mem_ofFn,
-      Fin.exists_succ_eq, ne_eq] at ha
-    simp only [Y, Fin.getElem_fin, ne_eq, decide_not, id_eq, Int.reduceNeg, Array.mem_filter,
-      Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not]
-    exact ⟨aux1, ha⟩
-  have h4 : X.length = c := by
-    simp only [X, List.mem_finRange, List.length_erase_of_mem, List.length_finRange,
-      add_tsub_cancel_right]
-  have h5 : Y.size ≥ c := by
-    have aux1 : X ⊆ Y.toList := by
-      simp [List.subset_def]
-      intro a ha
-      exact h3 a ha
-    have aux2 : X.Nodup := by
-      simp [X, List.finRange, List.Nodup]
-      intro i j hij
-      exact Fin.ne_of_lt hij
-    have aux3 : X.toFinset.card = X.length := by
-      have : (List.finRange (c+1)).erase 0 = ((List.finRange (c+1)).erase 0).dedup := by
-        exact Eq.symm (List.Nodup.dedup aux2)
-      simp [List.toFinset, Multiset.toFinset, X, List.finRange, List.ofFn, this]
-    have aux4 : Y.toList.toFinset.card ≤ Y.toList.length := by
-      exact List.toFinset_card_le Y.toList
-    simp [← h4]
-    have aux5 : X.toFinset ⊆ Y.toList.toFinset := by
-      simp [Finset.subset_def]
-      have : X = X.dedup := by exact Eq.symm (List.Nodup.dedup aux2)
-      rw [← this]
-      have : Y.toList ⊆ Y.toList.dedup := by exact List.subset_dedup Y.toList
-      exact fun _ x ↦ this (aux1 x)
-    have aux6 : X.toFinset.card ≤ Y.toList.toFinset.card := by
-      exact Finset.card_le_card aux5
-    rw [aux3] at aux6
-    exact Nat.le_trans aux6 aux4
-  specialize edgecoloring2 v
-  have := maxDegree_spec n G graphsize v
-  have : degree n G graphsize v < c := by linarith
-  have : Y.size < c := by
-    exact lt_of_le_of_lt edgecoloring2 this
-  linarith
 
 end EdgeColoring

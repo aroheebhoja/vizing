@@ -1,199 +1,228 @@
 import Vizing.EdgeColoring
-import Mathlib.Tactic
+
 set_option linter.dupNamespace false
+set_option push_neg.use_distrib true
 
 namespace Fan
 open Graph
 open EdgeColoring
+open Aux
 
-variable (c n : Nat)
- (nonempty : 0 < c)
- (G : Graph n)
+/-
 
-section Defs
+A fan on (x, y) is a nonempty distinct list of vertices
+that are all adjacent to x such that
+the color of (x, F[i]) is free on F[i+1].
 
-abbrev Fan := List (Vertex n)
-variable (C : EdgeColoring c)
-  (edgecoloring1 : C.size = n ∧ ∀ x ∈ C, x.size = n)
-  (graphsize : G.size = n)
-  (edgecoloring2 : coloring_valid c n G graphsize C edgecoloring1)
-  (edgeSet_symm : ∀ u v : Vertex n, (u, v) ∈ (edgeSet n G graphsize) ↔ v ∈ nbors n G graphsize u ∧ u ∈ nbors n G graphsize v)
-  (nbors_symm : ∀ u v : Vertex n, v ∈ nbors n G graphsize u ↔ u ∈ nbors n G graphsize v)
+Definition/axioms for a fan, and implementation of a function that creates
+a maximal fan from an edge (x, y).
 
-def fan (x y : Vertex n) : Fan n :=
-  let N := (nbors n G graphsize x).erase (y)
-  (fan' [y] N).reverse
-where fan' : (Fan n) → List (Vertex n) → (Fan n)
-  | f :: fs, N =>
-    let freeColors := getFreeColors c n G nonempty graphsize C edgecoloring1 f
-    let next := N.filter (fun u => freeColors.contains (color c n G C edgecoloring1 (x, u)))
-    match h : next with
-    | [] => (f :: fs)
-    | v :: vs => have : (N.erase v).length < N.length := by
-                  have h1 : v ∈ next := by
-                    rw [h]
-                    apply List.mem_cons_self v vs
-                  have h2 : v ∈ N := by
-                    simp only [List.mem_filter, next] at h1
-                    exact h1.left
-                  have h3 : N.length > 0 := by
-                    apply List.length_pos_iff_exists_mem.mpr
-                    exact ⟨v, h2⟩
-                  rw [List.length_erase_of_mem]
-                  · exact Nat.sub_one_lt_of_lt h3
-                  · exact h2
-      fan' (v :: (f :: fs)) (N.erase v)
-  | _, _ => []
-termination_by _ N => N.length
+(Proof of maximality will happen once I define the notion of a subfan!)
 
-def subfan (F : Fan n) (a : Color c) :=
-  match F with
-  | [] => []
-  | f :: fs =>
-    let freeColors := getFreeColors c n G nonempty graphsize C edgecoloring1 f
-    if a ∈ freeColors then [f] else f :: (subfan fs a)
+-/
 
-theorem subfan_spec (F : Fan n) (a : Color c) :
-  subfan c n nonempty G C edgecoloring1 graphsize F a ⊆ F := by
-  unfold subfan
-  simp
-  induction F with
-  | nil => simp
-  | cons f fs ih =>
-    rw [← subfan.eq_def] at ih
-    simp only
-    split
-    simp only [List.cons_subset, List.mem_cons, true_or, List.nil_subset,
-      List.subset_cons_of_subset, and_self]
-    exact List.cons_subset_cons f ih
+variable {n : Nat} {c : Nat} (G : Graph n) (C : EdgeColoring c G)
 
-include edgeSet_symm nbors_symm in
-theorem fan_spec (x y : Vertex n) (h : y ∈ nbors n G graphsize x) :
-  ∀ u ∈ (fan c n nonempty G C edgecoloring1 graphsize x y),
-  (x, u) ∈ edgeSet n G graphsize := by
-  unfold fan fan.fan' at *
-  lift_lets
-  intro N freeColors next
-  simp
-  match h : next with
-  | [] =>
+def colorAx (F : Array (Vertex n)) (x : Vertex n) :=
+  ∀ i, (h : i < (F.size - 1)) →
+  (color c G C (x, F[i + 1]'(by exact Nat.add_lt_of_lt_sub h))) ∈
+  (freeColorsOn G C F[i])
+
+structure Fan (x y : Vertex n) where
+  val : Array (Vertex n)
+  nborsAx : val.toList ⊆ (nbhd G x).val
+  nonemptyAx : val ≠ #[]
+  firstElemAx : val[0]'(by exact Array.size_pos_iff.mpr nonemptyAx) = y
+  colorAx : colorAx G C val x
+  nodupAx : val.toList.Nodup
+
+def default (x y : Vertex n) (h : present G (x, y)) : Fan G C x y where
+  val := #[y]
+  nborsAx := by
     simp
-    sorry
-  | v :: vs =>
-    dsimp
-    sorry
+    exact h.right
+  firstElemAx := by congr
+  nonemptyAx := by exact Array.ne_empty_of_size_eq_add_one rfl
+  colorAx := by simp [colorAx]
+  nodupAx := by simp
 
+def add (x y : Vertex n) (F : Array (Vertex n)) (nbors : List (Vertex n))
+  (h : F ≠ #[]) :=
+  match (List.attach nbors).find? (fun ⟨z, _⟩ ↦
+    color c G C (x, z) ∈ freeColorsOn G C (F.back (Array.size_pos_iff.mpr h))) with
+  | some z => add x y (F.push z.val) (nbors.erase z.val) Array.push_ne_empty
+  | none => F
+  termination_by nbors.length
+  decreasing_by
+    rw [List.length_erase_of_mem z.prop]
+    apply Nat.sub_one_lt_of_le
+    apply List.length_pos_iff_exists_mem.mpr
+    exact ⟨z.val, z.prop⟩
+    rfl
 
-  -- induction' h' : next with z zs ih generalizing N
-  -- · intro u hu
-  --   simp at hu
-  --   rw [hu]
-  --   apply (edgeSet_symm x y).mpr
-  --   constructor
-  --   exact h
-  --   exact (nbors_symm x y).mp h
-  -- simp_all
-  -- intro u hu
-  -- unfold fan.fan' at hu
+#check add.induct
 
-  -- sorry
+theorem add_nborsAx (x y : Vertex n) (F : Array (Vertex n))
+  (nbors : List (Vertex n)) (hne : F ≠ #[]) (h : F.toList ⊆ (nbhd G x).val)
+  (hn : nbors ⊆ (nbhd G x).val) :
+  (add G C x y F nbors hne).toList ⊆ (nbhd G x).val := by
+  fun_induction add G C x y F nbors hne
+  · rename_i F nbors hne z hz ih
+    simp_all
+    apply ih
+    · exact hn z.prop
+    · grw [List.erase_subset]; assumption
+  · simp_all
 
-end Defs
+theorem add_nonemptyAx (x y : Vertex n) (F : Array (Vertex n))
+  (nbors : List (Vertex n)) (hne : F ≠ #[]) :
+  (add G C x y F nbors hne) ≠ #[] := by
+  fun_induction add G C x y F nbors hne <;> simp_all
 
-def rotate (F : Fan n) (x : Vertex n) (X : EdgeColoring c)
-      (h1 : X.size = n ∧ ∀ x ∈ X, x.size = n)
-      (h2 : coloring_valid c n G graphsize X h1)
-      (h3 : ∀ u ∈ F, (x, u) ∈ edgeSet n G graphsize)
-      (a : Color c) : EdgeColoring c :=
-  match h : F with
-  | [] => X
-  | f :: fs =>
-    let a' := color c n G X h1 (x, f)
-    let X' := setEdgeColor c n G X h1 (x, f) a
-    have ha : X'.size = n ∧ ∀ x ∈ X', x.size = n := by
-      exact setEdgeColor_spec c n G X h1 (x, f) a
-    have hb : coloring_valid c n G graphsize X' ha := by
-      have aux := setEdgeColor_spec' c n G graphsize X h1 h2 (x, f) a
-      have : (x, f) ∈ edgeSet n G graphsize := by
-        have : f ∈ f :: fs := by
-          exact List.mem_cons_self f fs
-        exact h3 f this
-      exact aux this
-    have hc : ∀ u ∈ fs, (x, u) ∈ edgeSet n G graphsize := by
-      intro u hu
-      have : u ∈ f :: fs := by exact List.mem_cons_of_mem f hu
-      exact h3 u this
-    rotate fs x X' ha hb hc a'
+theorem add_preserves_mem (x y : Vertex n) (F : Array (Vertex n))
+  (nbors : List (Vertex n)) (hne : F ≠ #[]) :
+  ∀ a, a ∈ F → a ∈ add G C x y F nbors hne := by
+  intro a ha
+  fun_induction add G C x y F nbors hne <;> simp_all
 
-variable (C : EdgeColoring c)
-  (edgecoloring1 : C.size = n ∧ ∀ x ∈ C, x.size = n)
-  (graphsize : G.size = n)
-  (edgecoloring2 : coloring_valid c n G graphsize C edgecoloring1)
+theorem add_maximal (x y : Vertex n) (F : Array (Vertex n))
+  (nbors : List (Vertex n)) (hne : F ≠ #[]) :
+  ∀ z ∈ nbors, z ∉ (add G C x y F nbors hne) →
+    color c G C (x, z) ∉ (freeColorsOn G C
+    ((add G C x y F nbors hne).back (Array.size_pos_iff.mpr
+      (add_nonemptyAx G C x y F nbors hne)))) := by
+  fun_induction add G C x y F nbors hne
+  · rename_i F nbors hne z hz ih
+    unfold add
+    simp_all
+    intro w hw1 hw2
+    apply ih
+    rw [List.mem_erase_of_ne]
+    any_goals assumption
+    contrapose! hw2
+    subst hw2
+    exact add_preserves_mem G C x y (F.push z) (nbors.erase z)
+      Array.push_ne_empty z.val Array.mem_push_self
+  · rename_i nbors hne h
+    unfold add
+    simp_rw [h]
+    simp at h
+    intro w hw1 hw2
+    exact h w hw1
 
-def rotate_spec (F : Fan n) (x : Vertex n)
-    (a : Color c) (h : ∀ u ∈ F, (x, u) ∈ edgeSet n G graphsize) :
-  (rotate c n G F x C edgecoloring1 edgecoloring2 h a).size = n ∧
-  ∀ y ∈ (rotate c n G F x C edgecoloring1 edgecoloring2 h a), y.size = n := by
-  rw [rotate.eq_def]
-  induction F generalizing C a with
-  | nil => simp_all only [implies_true, and_self]
-  | cons f fs ih =>
-    dsimp -zeta
-    lift_lets
-    intro a' C'
-    have aux1 := rotate.proof_1 c n G x C edgecoloring1 a f
-    have aux2 := rotate.proof_3 n G x f fs h
-    have aux3 := rotate.proof_2 c n G x C edgecoloring1 edgecoloring2 a f fs h aux1
-    specialize @ih C' aux1 aux3 a' aux2
-    rw [← rotate.eq_def] at ih
-    rcases ih with ⟨ih1, ih2⟩
-    constructor
-    · simp [← ih1]
-    · simp [← ih2]
-      exact ih2
+theorem add_firstElemAx (x y : Vertex n) (F : Array (Vertex n))
+  (nbors : List (Vertex n)) (hne : F ≠ #[])
+  (h : F[0]'(Array.size_pos_iff.mpr hne) = y) :
+  (add G C x y F nbors hne)[0]'(Array.size_pos_iff.mpr
+    (add_nonemptyAx G C x y F nbors hne)) = y := by
+  fun_induction add G C x y F nbors hne
+  · rename_i F nbors hne z hz ih
+    unfold add; simp_all only
+    apply ih
+    simp_all [Array.getElem_push]
+  · unfold add; simp_all only
 
-def rotateFan (F : Fan n) (x : Vertex n) (a : Color c) (h : ∀ u ∈ F, (x, u) ∈ edgeSet n G graphsize) : EdgeColoring c :=
-  have : ∀ u ∈ F.reverse, (x, u) ∈ edgeSet n G graphsize := by
-    intro u hu
-    simp only [List.mem_reverse] at hu
-    exact h u hu
-  rotate c n G (F.reverse) x C edgecoloring1 edgecoloring2 this a
+theorem add_colorAx (x y : Vertex n) (F : Array (Vertex n))
+  (nbors : List (Vertex n)) (hne : F ≠ #[]) (h : colorAx G C F x) :
+  colorAx G C (add G C x y F nbors hne) x := by
+  simp [colorAx]
+  fun_induction add G C x y F nbors hne
+  · rename_i F nbors hne z hz ih
+    simp_all only
+    apply ih
+    simp [colorAx] at ⊢ h
+    intro i hi
+    by_cases hsize : i < F.size - 1
+    · have : (F.push z)[i+1]'(by simp [Array.size_push]; linarith) = F[i+1] := by
+        apply Array.getElem_push_lt
+      simp [Array.getElem_push_lt hi, this]
+      exact h i hsize
+    · have : i = F.size - 1 := by
+        simp at hsize; omega
+      subst this
+      simp [Nat.sub_add_cancel (Nat.one_le_of_lt hi), Array.getElem_push_lt hi]
+      apply List.find?_some at hz; simp [Array.back] at hz
+      exact hz
+  · simp_all only [colorAx, implies_true]
 
-def rotateFan_spec (F : Fan n) (x : Vertex n) (a : Color c) (h : ∀ u ∈ F, (x, u) ∈ edgeSet n G graphsize) :
-  (rotateFan c n G C edgecoloring1 graphsize edgecoloring2 F x a h).size = n ∧
-  ∀ y ∈ (rotateFan c n G C edgecoloring1 graphsize edgecoloring2 F x a h), y.size = n := by
-    simp [rotateFan]
-    have : ∀ u ∈ F.reverse, (x, u) ∈ edgeSet n G graphsize := by
-      intro u hu
-      simp only [List.mem_reverse] at hu
-      exact h u hu
-    exact rotate_spec c n G C edgecoloring1 graphsize edgecoloring2 (List.reverse F) x a this
+theorem add_nodupAx (x y : Vertex n) (F : Array (Vertex n))
+  (nbors : List (Vertex n)) (hn : nbors.Nodup) (hne : F ≠ #[]) (h : F.toList.Nodup)
+  (hdisjoint : List.Disjoint nbors F.toList) :
+  (add G C x y F nbors hne).toList.Nodup := by
+  fun_induction add G C x y F nbors hne
+  · rename_i F nbors hne z hz ih
+    simp_all only
+    apply ih
+    · exact List.Nodup.erase z.val hn
+    · simp
+      apply List.nodup_append.mpr
+      use h, List.nodup_singleton z.val
+      specialize hdisjoint z.prop
+      simp_all
+    · simp [List.Disjoint] at hdisjoint ⊢
+      intro a h
+      constructor
+      · apply hdisjoint
+        exact List.mem_of_mem_erase h
+      · by_contra ha
+        subst ha
+        exact List.Nodup.not_mem_erase hn h
+  · simp_all only
 
-def rotate_spec' (F : Fan n) (x : Vertex n) (a : Color c) (h : ∀ u ∈ F, (x, u) ∈ edgeSet n G graphsize) :
-  coloring_valid c n G graphsize (rotate c n G F x C edgecoloring1 edgecoloring2 h a)
-  (rotate_spec c n G C edgecoloring1 graphsize edgecoloring2 F x a h):= by
-  unfold rotate
-  induction F generalizing C a with
-  | nil => simp_all only
-  | cons f fs ih =>
-    dsimp -zeta
-    lift_lets
-    intro a' C'
-    have aux1 := rotate.proof_1 c n G x C edgecoloring1 a f
-    have aux2 := rotate.proof_3 n G x f fs h
-    have aux3 := rotate.proof_2 c n G x C edgecoloring1 edgecoloring2 a f fs h aux1
-    specialize @ih C' aux1 aux3 a' aux2
-    unfold rotate
-    exact ih
+def mkMaxFan (x y : Vertex n) (h : present G (x, y)) : Array (Vertex n) :=
+  add G C x y (default G C x y h).val
+  ((nbhd G x).val.erase y) (default G C x y h).nonemptyAx
 
-def rotateFan_spec' (F : Fan n) (x : Vertex n) (a : Color c) (h : ∀ u ∈ F, (x, u) ∈ edgeSet n G graphsize) :
-  coloring_valid c n G graphsize (rotateFan c n G C edgecoloring1 graphsize edgecoloring2 F x a h)
-  (rotateFan_spec c n G C edgecoloring1 graphsize edgecoloring2 F x a h):= by
-    simp [rotateFan]
-    have : ∀ u ∈ F.reverse, (x, u) ∈ edgeSet n G graphsize := by
-      intro u hu
-      simp only [List.mem_reverse] at hu
-      exact h u hu
-    exact rotate_spec' c n G C edgecoloring1 graphsize edgecoloring2 (List.reverse F) x a this
+variable (x y : Vertex n)
+
+theorem mkMaxFan_nborsAx (hpres : present G (x, y)) :
+  (mkMaxFan G C x y hpres).toList ⊆ (nbhd G x).val := by
+  simp [mkMaxFan, default]
+  simp [present] at hpres
+  apply add_nborsAx
+  · simp
+    exact hpres.right
+  · exact List.erase_subset
+
+theorem mkMaxFan_nonemptyAx (x y : Vertex n) (hpres : present G (x, y)) :
+  mkMaxFan G C x y hpres ≠ #[] := by
+  simp [mkMaxFan, default, add_nonemptyAx]
+
+theorem mkMaxFan_firstElemAx (x y : Vertex n) (hpres : present G (x, y)) :
+  (mkMaxFan G C x y hpres)[0]'(by
+  exact Array.size_pos_iff.mpr (mkMaxFan_nonemptyAx G C x y hpres))
+  = y := by
+  simp [mkMaxFan, default, add_firstElemAx]
+
+theorem mkMaxFan_colorAx (x y : Vertex n) (hpres : present G (x, y)) :
+  colorAx G C (mkMaxFan G C x y hpres) x := by
+  simp [mkMaxFan, (default G C x y hpres).colorAx, add_colorAx]
+
+theorem mkMaxFan_nodupAx (x y : Vertex n) (hpres : present G (x, y)) :
+  (mkMaxFan G C x y hpres).toList.Nodup := by
+  simp [mkMaxFan, default]
+  apply add_nodupAx
+  · apply List.Nodup.erase y
+    exact (nbhd G x).prop.right
+  · exact List.nodup_singleton y
+  · apply List.disjoint_singleton.mpr
+    apply List.Nodup.not_mem_erase
+    exact (nbhd G x).prop.right
+
+theorem mkMaxFan_maximal (x y : Vertex n) (hpres : present G (x, y)) :
+  ∀ z ∈ ((nbhd G x).val.erase y), z ∉ mkMaxFan G C x y hpres →
+    color c G C (x, z) ∉ (freeColorsOn G C
+    ((mkMaxFan G C x y hpres).back (Array.size_pos_iff.mpr
+      (mkMaxFan_nonemptyAx G C x y hpres)))) := by
+  simp [mkMaxFan, default]
+  apply add_maximal
+
+def maximalFan (x y : Vertex n) (h : present G (x, y)) : Fan G C x y where
+  val := mkMaxFan G C x y h
+  nborsAx := mkMaxFan_nborsAx G C x y h
+  firstElemAx := mkMaxFan_firstElemAx G C x y h
+  nonemptyAx := mkMaxFan_nonemptyAx G C x y h
+  colorAx := mkMaxFan_colorAx G C x y h
+  nodupAx := mkMaxFan_nodupAx G C x y h
 
 end Fan

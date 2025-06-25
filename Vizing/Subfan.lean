@@ -1,9 +1,8 @@
-import Vizing.new.Fan
-import Vizing.new.TakeUntil
+import Vizing.Fan
+import Vizing.TakeUntil
 
 set_option linter.dupNamespace false
 set_option push_neg.use_distrib true
--- set_option trace.profiler true
 
 namespace Fan
 open Graph

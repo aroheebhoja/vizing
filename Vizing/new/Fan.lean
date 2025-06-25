@@ -5,8 +5,8 @@ set_option push_neg.use_distrib true
 
 namespace Fan
 open Graph
-open Nbhd
 open EdgeColoring
+open Aux
 
 /-
 
@@ -60,6 +60,8 @@ def add (x y : Vertex n) (F : Array (Vertex n)) (nbors : List (Vertex n))
     exact ⟨z.val, z.prop⟩
     rfl
 
+#check add.induct
+
 theorem add_nborsAx (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hne : F ≠ #[]) (h : F.toList ⊆ (nbhd G x).val)
   (hn : nbors ⊆ (nbhd G x).val) :
@@ -77,18 +79,36 @@ theorem add_nonemptyAx (x y : Vertex n) (F : Array (Vertex n))
   (add G C x y F nbors hne) ≠ #[] := by
   fun_induction add G C x y F nbors hne <;> simp_all
 
+theorem add_preserves_mem (x y : Vertex n) (F : Array (Vertex n))
+  (nbors : List (Vertex n)) (hne : F ≠ #[]) :
+  ∀ a, a ∈ F → a ∈ add G C x y F nbors hne := by
+  intro a ha
+  fun_induction add G C x y F nbors hne <;> simp_all
+
 theorem add_maximal (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hne : F ≠ #[]) :
   ∀ z ∈ nbors, z ∉ (add G C x y F nbors hne) →
     color c G C (x, z) ∉ (freeColorsOn G C
     ((add G C x y F nbors hne).back (Array.size_pos_iff.mpr
       (add_nonemptyAx G C x y F nbors hne)))) := by
-  fun_cases add G C x y F nbors hne
-  unfold add
-  simp_all
-
-  stop
-  sorry
+  fun_induction add G C x y F nbors hne
+  · rename_i F nbors hne z hz ih
+    unfold add
+    simp_all
+    intro w hw1 hw2
+    apply ih
+    rw [List.mem_erase_of_ne]
+    any_goals assumption
+    contrapose! hw2
+    subst hw2
+    exact add_preserves_mem G C x y (F.push z) (nbors.erase z)
+      Array.push_ne_empty z.val Array.mem_push_self
+  · rename_i nbors hne h
+    unfold add
+    simp_rw [h]
+    simp at h
+    intro w hw1 hw2
+    exact h w hw1
 
 theorem add_firstElemAx (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hne : F ≠ #[])
@@ -188,6 +208,14 @@ theorem mkMaxFan_nodupAx (x y : Vertex n) (hpres : present G (x, y)) :
   · apply List.disjoint_singleton.mpr
     apply List.Nodup.not_mem_erase
     exact (nbhd G x).prop.right
+
+theorem mkMaxFan_maximal (x y : Vertex n) (hpres : present G (x, y)) :
+  ∀ z ∈ ((nbhd G x).val.erase y), z ∉ mkMaxFan G C x y hpres →
+    color c G C (x, z) ∉ (freeColorsOn G C
+    ((mkMaxFan G C x y hpres).back (Array.size_pos_iff.mpr
+      (mkMaxFan_nonemptyAx G C x y hpres)))) := by
+  simp [mkMaxFan, default]
+  apply add_maximal
 
 def maximalFan (x y : Vertex n) (h : present G (x, y)) : Fan G C x y where
   val := mkMaxFan G C x y h

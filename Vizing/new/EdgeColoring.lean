@@ -7,8 +7,7 @@ set_option push_neg.use_distrib true
 
 namespace EdgeColoring
 open Graph
-open SetSet
-open Nbhd
+open Aux
 
 /-
 Implementation of a basic edge-coloring library,
@@ -23,12 +22,33 @@ Can't be a color we already used!
    because we know the edge is present in the graph)
 -/
 
+def allColors : List (Color c) := (List.finRange c).map some
+
+def freeColorsOn (v : Vertex n) :=
+  (allColors).filter (fun x => x ∉ incidentColorsOn c G C v)
+
 def edgeColorValid (e : Edge n) (a : Color c) : Prop :=
+  a.isNone ∨ (a ∈ freeColorsOn G C e.1 ∧ a ∈ freeColorsOn G C e.2)
+
+def edgeColorValidAux (e : Edge n) (a : Color c) : Prop :=
   a.isSome →
   Array.count a
   (C.val[e.1]'(by rw [C.sizeAx1]; exact e.1.isLt)) = 0 ∧
   Array.count a
   (C.val[e.2]'(by rw [C.sizeAx1]; exact e.2.isLt)) = 0
+
+theorem edgeColorValid_spec (e : Edge n) (a : Color c) (h : edgeColorValid G C e a) :
+  edgeColorValidAux G C e a := by
+  simp [edgeColorValid, freeColorsOn, incidentColorsOn] at h
+  rcases h with h | h
+  · simp_all [edgeColorValidAux]
+  · rcases h with ⟨⟨_, h1⟩, ⟨_, h2⟩⟩
+    intro h
+    simp [Option.isSome_iff_ne_none.mp h] at h1 h2
+    constructor
+    all_goals
+      apply Array.count_eq_zero_of_not_mem
+      assumption
 
 variable
   (e : Edge n) (a : Color c)
@@ -151,7 +171,7 @@ theorem setEdge_representsEdgesAx (hpres : present G e) : ∀ f : Edge n,
     exact C.representsEdgesAx f hf
 
 theorem setEdge_validAx (hpres : present G e)
-  (hvalid : edgeColorValid G C e a) :
+  (hval : edgeColorValid G C e a) :
   ∀ u v : Vertex n,
     (((setEdge G C e a)[u]'(by
       rw [setEdge_sizeAx1]; exact u.isLt))[v]'(by
@@ -162,6 +182,7 @@ theorem setEdge_validAx (hpres : present G e)
       ((setEdge G C e a)[u]'(by
       rw [setEdge_sizeAx1]; exact u.isLt))
       = 1 := by
+  have hvalid := edgeColorValid_spec G C e a hval
   intro u v huv
   have := edge_not_self_loop G e hpres
   by_cases h : e.1 ≠ u ∧ e.2 ≠ u
@@ -172,6 +193,7 @@ theorem setEdge_validAx (hpres : present G e)
   · push_neg at h
     have spec1 := setEdge_spec1 G C e a hpres
     have spec2 := setEdge_spec2 G C e a
+    clear hval
     wlog hu : e.1 = u generalizing e
     specialize this (e.2, e.1)
     have symm := setEdge_symm G C (e.2, e.1) a (And.comm.mp hpres)
@@ -202,11 +224,12 @@ theorem setEdge_validAx (hpres : present G e)
       rw [aux3]
       split_ifs with h1 h2
       any_goals ring_nf
-      · have aux4 := count_gt_one_if (C.val[e.1]'(by
-          rw [C.sizeAx1]; exact e.1.isLt)) n
-          (by exact C.sizeAx2 e.1) v e.2 (by
-          constructor; exact fun a ↦ hv (Eq.symm a); exact
-          beq_iff_eq.mpr (Eq.symm h1))
+      · have aux4 := one_lt_count (C.val[e.1]'(by
+          rw [C.sizeAx1]; exact e.1.isLt))
+          ⟨v, by simp_rw [C.sizeAx2]; exact v.isLt⟩
+          ⟨e.2, by simp_rw [C.sizeAx2]; exact e.2.isLt⟩
+          (by simp; exact Fin.val_ne_of_ne fun a ↦ hv (Eq.symm a))
+          (by exact beq_iff_eq.mpr (Eq.symm h1))
         simp_rw [Fin.getElem_fin] at aux4
         apply ne_of_gt at aux4
         simp_all
@@ -248,16 +271,11 @@ def setEdgeColor (e : Edge n) (a : Color c)
   validAx := setEdge_validAx G C e a hpres hvalid
   symmAx := setEdge_symmAx G C e a hpres
 
-def allColors : List (Color c) := (List.finRange c).map some
-
-def freeColorsOn (v : Vertex n) :=
-  (allColors).filter (fun x => x ∉ incidentColorsOn c G C v)
-
 theorem existsFreeColor (h : ↑(maxDegree G) < c) :
   ∀ v : Vertex n, (freeColorsOn G C v) ≠ [] := by
   intro v
   simp [freeColorsOn]
-  apply nodup_exists_mem_notMem_of_len_lt
+  apply exists_mem_notMem_of_nodup_of_len_lt
   · apply List.nodup_iff_count_le_one.mpr
     have hvalid := C.validAx v
     simp_all [incidentColorsOn]
@@ -302,5 +320,44 @@ theorem existsFreeColor (h : ↑(maxDegree G) < c) :
       rw [List.length_map] at this
       exact this
     exact Nat.lt_of_le_of_lt hle hlt
+
+theorem setEdgeColor_freeOn (e : Edge n) (hpres : present G e) : (color c G C e).isSome →
+  color c G C e ∈ freeColorsOn G (setEdgeColor G C e none hpres (by simp [edgeColorValid])) e.1 ∧
+  color c G C e ∈ freeColorsOn G (setEdgeColor G C e none hpres (by simp [edgeColorValid])) e.2 := by
+  intro h
+  have := C.validAx
+  have hloop := edge_not_self_loop G e hpres
+  have aux := set_set_spec3 n C.val C.sizeAx1 C.sizeAx2 none e.1 e.2 e.2 hloop
+  simp [color, freeColorsOn, incidentColorsOn] at *
+  repeat any_goals apply And.intro
+  any_goals
+    simp [allColors]
+    apply Option.isSome_iff_exists.mp at h
+    rcases h with ⟨a, ha⟩
+    use a; exact Eq.symm ha
+  · left
+    specialize this e.1 e.2 h
+    apply Array.not_mem_of_count_eq_zero
+    simp [setEdgeColor, setEdge]
+    have := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 none e.1 e.2
+    have := set_set_spec3 n (set_set n C.val C.sizeAx1 C.sizeAx2 none e.1 e.2)
+      this.left this.right none e.2 e.1 e.1 (by exact fun a ↦ hloop (Eq.symm a))
+    simp_rw [← Fin.getElem_fin, ← this]
+    rw [count_set_set]
+    split_ifs <;> simp_all
+    rename_i hc
+    rw [← Option.ne_none_iff_isSome] at h
+    exact h (Eq.symm hc)
+  · left
+    specialize this e.2 e.1 (by simp_rw [← Fin.getElem_fin, C.symmAx e.1 e.2] at h; assumption)
+    apply Array.not_mem_of_count_eq_zero
+    simp [setEdgeColor, setEdge]
+    simp_rw [← Fin.getElem_fin, count_set_set, C.symmAx]
+    simp [← aux]
+    rw [this]
+    simp_rw [← Option.ne_none_iff_isSome, ← Fin.getElem_fin, C.symmAx e.1 e.2] at h
+    simp [Option.isSome_iff_ne_none]
+    exact Ne.symm h
+
 
 end EdgeColoring

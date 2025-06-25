@@ -5,8 +5,9 @@ import Vizing.new.Upstream
 
 set_option linter.dupNamespace false
 
-namespace Nbhd
+namespace EdgeColoring
 open Graph
+open Aux
 
 /-
 Defining some useful lemmas about colored neighborhoods,
@@ -122,7 +123,7 @@ theorem colored_nbhd_size_le (v : Vertex n) :
   let N := coloredNbors c G C v
   let X := nbhd G v
   simp [degree]
-  apply nodup_subset_eq_length_le
+  apply length_le_length_of_nodup_of_subset
   · exact N.prop.right
   · exact colored_nbors_subset_nbors c G C v
 
@@ -134,4 +135,4 @@ def default : EdgeColoring c G where
   validAx := by simp
   symmAx := by simp
 
-end Nbhd
+end EdgeColoring

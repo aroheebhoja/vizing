@@ -3,7 +3,7 @@ import Mathlib.Tactic
 set_option linter.dupNamespace false
 set_option push_neg.use_distrib true
 
-namespace SetSet
+namespace Aux
 
 /-
 Defining a function to set a single cell in a nxn square array.
@@ -149,3 +149,5 @@ theorem count_set_set' [BEq α] (A : Array (Array α))
   := by
   have := set_set_spec3 n A h1 h2 a i j j h
   rw [this]
+
+end Aux

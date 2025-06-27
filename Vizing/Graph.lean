@@ -201,4 +201,14 @@ def toEdgeSet (G : Graph n) : EdgeSet G :=
 
   def present (e : Edge n) := e.1 ∈ (nbhd G e.2).val ∧ e.2 ∈ (nbhd G e.1).val
 
+  theorem present_symm (e : Edge n) : e.1 ∈ (nbhd G e.2).val ↔ e.2 ∈ (nbhd G e.1).val := by
+    have := G.prop.left
+    simp [graphSymmAx] at this
+    split at this
+    rename_i M A h heq
+    simp [nbhd]
+    specialize this e.1 e.2
+    simp_rw [heq]
+    exact this
+
 end Graph

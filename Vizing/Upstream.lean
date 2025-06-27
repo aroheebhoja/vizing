@@ -27,6 +27,10 @@ theorem exists_mem_notMem_of_nodup_of_len_lt {α : Type} [DecidableEq α] (L M :
   apply Finset.exists_mem_notMem_of_card_lt_card at hlen
   simp_all
 
+theorem dropLast_nodup_of_nodup {α : Type} [DecidableEq α] (L : List α)
+  (hl : L.Nodup) : L.dropLast.Nodup := by
+  exact List.Sublist.nodup (List.dropLast_sublist L) hl
+
 theorem one_lt_count {α : Type} [BEq α] [LawfulBEq α] (A : Array α)
   (i j : Fin A.size) (h1 : i ≠ j) (h2 : A[i] == A[j]) :
    1 < A.count (A[i]) := by

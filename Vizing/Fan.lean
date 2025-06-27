@@ -36,6 +36,34 @@ structure Fan (x y : Vertex n) where
   colorAx : colorAx G C val x
   nodupAx : val.toList.Nodup
 
+theorem fan_colored_edges (x y : Vertex n) (F : Fan G C x y) :
+  ∀ u ∈ F.val, u ≠ y → (color c G C (x, u)).isSome := by
+  intro u h1 h2
+  apply Array.getElem_of_mem at h1
+  rcases h1 with ⟨i, hi1, hi2⟩
+  have aux : 1 ≤ i := by
+    by_contra h
+    simp at h
+    subst h
+    rw [F.firstElemAx] at hi2
+    exact h2 (Eq.symm hi2)
+  subst hi2
+  have hcolor := F.colorAx (i - 1) ?_
+  have : i - 1 + 1 = i := by
+    refine Nat.sub_add_cancel aux
+  simp_rw [this] at hcolor
+  · simp [freeColorsOn] at hcolor
+    rcases hcolor with ⟨h, _⟩
+    simp [allColors] at h
+    rcases h with ⟨a, ha⟩
+    apply Option.isSome_iff_exists.mpr
+    use a; exact Eq.symm ha
+  · apply Nat.sub_lt_sub_right
+    repeat assumption
+
+def last {G : Graph n} {C : EdgeColoring c G} {x y : Vertex n} (F : Fan G C x y) :=
+  F.val.back (by exact Array.size_pos_iff.mpr F.nonemptyAx)
+
 def default (x y : Vertex n) (h : present G (x, y)) : Fan G C x y where
   val := #[y]
   nborsAx := by

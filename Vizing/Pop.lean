@@ -1,6 +1,8 @@
 import Std
 import Mathlib.Tactic
 
+set_option linter.unusedVariables false
+
 namespace Aux
 
 @[simp]

@@ -59,13 +59,10 @@ def setEdge :=
     (by exact h.left) (by exact h.right) a e.2 e.1
 
 theorem edge_not_self_loop (hpres : present G e) : e.1 ≠ e.2 := by
-  have := G.prop.right
-  contrapose! this
-  simp [graphNoSelfLoopsAx]; split
+  by_contra h
   simp [present, nbhd] at hpres
-  rcases hpres with ⟨l, r⟩
-  simp_all
-  use e.2
+  simp_rw [← Fin.getElem_fin, h] at hpres
+  exact G.noSelfLoopsAx e.2 hpres.left
 
 theorem setEdge_symm (hpres : present G e) :
   setEdge G C e a = setEdge G C (e.2, e.1) a := by
@@ -285,7 +282,7 @@ theorem freeColors_invariant (e : Edge n) (a : Color c)
   ∀ v : Vertex n, v ≠ e.1 ∧ v ≠ e.2 → freeColorsOn G C v =
     freeColorsOn G (setEdgeColor G C e a hpres hvalid) v := by
   intro v h
-  simp [freeColorsOn]
+  simp only [freeColorsOn]
   rw [incidentColors_invariant G C e a hpres hvalid v h]
 
 theorem color_invariant (e : Edge n) (a : Color c)
@@ -352,13 +349,12 @@ theorem newColor_not_eq_oldColor (e : Edge n) (a : Color c)
   (hvalid : edgeColorValid G C e a) (hcolor : (color c G C e).isSome) :
   a ≠ color c G C e := by
   intro hc
-  simp [edgeColorValid] at hvalid
+  simp [edgeColorValid, freeColorsOn, incidentColorsOn] at hvalid
   rcases hvalid with h | h
   · rw [← Option.ne_none_iff_isSome] at hcolor
     rw [← hc, ← h] at hcolor
     contradiction
-  · simp [freeColorsOn, incidentColorsOn] at h
-    have aux1 : a ≠ none := by
+  · have aux1 : a ≠ none := by
       rcases h with ⟨⟨h, _⟩, _⟩
       rw [Option.ne_none_iff_isSome, Option.isSome_iff_exists]
       simp [allColors] at h

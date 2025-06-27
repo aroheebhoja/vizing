@@ -65,10 +65,8 @@ theorem last_present (F : Fan G C x y) :
 theorem not_in_fan (F : Fan G C x y) : x ∉ F.val := by
   intro h
   have h1 := F.nborsAx h.val
-  have h2 := G.prop.right
-  simp [graphNoSelfLoopsAx] at h2; split at h2; specialize h2 x
+  have h2 := G.noSelfLoopsAx x
   simp [nbhd] at h1
-  rename_i heq; simp_rw [heq] at h1
   contradiction
 
 def mkFan (F : Fan G C x y) (a : Color c)

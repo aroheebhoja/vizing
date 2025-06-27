@@ -88,8 +88,6 @@ def add (x y : Vertex n) (F : Array (Vertex n)) (nbors : List (Vertex n))
     exact ⟨z.val, z.prop⟩
     rfl
 
-#check add.induct
-
 theorem add_nborsAx (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hne : F ≠ #[]) (h : F.toList ⊆ (nbhd G x).val)
   (hn : nbors ⊆ (nbhd G x).val) :
@@ -171,7 +169,7 @@ theorem add_colorAx (x y : Vertex n) (F : Array (Vertex n))
       simp [Nat.sub_add_cancel (Nat.one_le_of_lt hi), Array.getElem_push_lt hi]
       apply List.find?_some at hz; simp [Array.back] at hz
       exact hz
-  · simp_all only [colorAx, implies_true]
+  · simp_all [colorAx, implies_true]
 
 theorem add_nodupAx (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hn : nbors.Nodup) (hne : F ≠ #[]) (h : F.toList.Nodup)
@@ -231,11 +229,11 @@ theorem mkMaxFan_nodupAx (x y : Vertex n) (hpres : present G (x, y)) :
   simp [mkMaxFan, default]
   apply add_nodupAx
   · apply List.Nodup.erase y
-    exact (nbhd G x).prop.right
+    exact (nbhd G x).nodupAx
   · exact List.nodup_singleton y
   · apply List.disjoint_singleton.mpr
     apply List.Nodup.not_mem_erase
-    exact (nbhd G x).prop.right
+    exact (nbhd G x).nodupAx
 
 theorem mkMaxFan_maximal (x y : Vertex n) (hpres : present G (x, y)) :
   ∀ z ∈ ((nbhd G x).val.erase y), z ∉ mkMaxFan G C x y hpres →

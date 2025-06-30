@@ -4,6 +4,8 @@ import Mathlib.Tactic
 
 namespace Aux
 
+-- Read mathlib guidelines
+
 theorem length_le_length_of_nodup_of_subset {α : Type} [DecidableEq α] (L M : List α)
   (hl : L.Nodup) (hsubset : L ⊆ M) : L.length ≤ M.length := by
   have h1 : L ⊆ M.dedup := by
@@ -27,9 +29,9 @@ theorem exists_mem_notMem_of_nodup_of_len_lt {α : Type} [DecidableEq α] (L M :
   apply Finset.exists_mem_notMem_of_card_lt_card at hlen
   simp_all
 
-theorem dropLast_nodup_of_nodup {α : Type} [DecidableEq α] (L : List α)
-  (hl : L.Nodup) : L.dropLast.Nodup := by
-  exact List.Sublist.nodup (List.dropLast_sublist L) hl
+theorem dropLast_nodup_of_nodup {α : Type} [DecidableEq α] {L : List α}
+    (hl : L.Nodup) : L.dropLast.Nodup :=
+  List.Sublist.nodup (List.dropLast_sublist L) hl
 
 theorem one_lt_count {α : Type} [BEq α] [LawfulBEq α] (A : Array α)
   (i j : Fin A.size) (h1 : i ≠ j) (h2 : A[i] == A[j]) :

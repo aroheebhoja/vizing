@@ -56,7 +56,7 @@ theorem not_in_fan (F : Fan G C x y) : x ∉ F.val := by
 def mkFan (a : Color c)
   (hvalid : edgeColorValid G C (x, last F) a) (hsize : F.val.size > 1):
   Fan G (setEdgeColor G C (x, last F) a (last_present F) hvalid) x y where
-  val := popElem F.val F.nonemptyAx
+  val :=  F.val.pop
   nborsAx := by
     simp
     intro u h
@@ -128,7 +128,7 @@ def rotateFan (C : EdgeColoring c G) (F : Fan G C x y) (a : Color c)
           simp [Array.back] at this
           exact Array.mem_of_getElem this
         · have := pop_back F.val F.nonemptyAx h F.nodupAx
-          simp [popElem, -ne_eq] at this
+          simp [-ne_eq] at this
           exact Ne.symm this
   rotateFan C' F' a' hvalid'
   else C'

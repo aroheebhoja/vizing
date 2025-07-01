@@ -1,4 +1,4 @@
-import Vizing.Fan
+import Vizing.Fan.Maximal
 import Vizing.TakeUntil
 
 set_option linter.dupNamespace false
@@ -19,7 +19,7 @@ Proof that maximalFan is a maximal fan
 
 -/
 
-variable {n c : Nat} (G : Graph n) (C : EdgeColoring c G) (x y : Vertex n)
+variable {n c : Nat} (G : Graph n) (C : EdgeColoring c G) {x y : Vertex n}
   (h : present G (x, y))
 
 -- F1 is a subfan of F2
@@ -27,38 +27,27 @@ def isSubfan (F1 F2 : Fan G C x y) :=
   F1.val.isPrefixOf F2.val
 
 theorem maximalFan_spec : ∀ (F : Fan G C x y),
-  isSubfan G C x y (maximalFan G C x y h) F →
-  F.val = (maximalFan G C x y h).val := by
+  isSubfan G C (maximalFan G C h) F →
+  F.val = (maximalFan G C h).val := by
   intro F hF
   simp [isSubfan, ← Array.isPrefixOf_toList] at hF
   rcases (lt_or_eq_of_le (List.IsPrefix.length_le hF)) with hlt | heq
-  · have ⟨_, hF'⟩ := List.prefix_iff_getElem.mp hF
-    rw [List.prefix_iff_eq_append, List.drop_eq_getElem_cons hlt] at hF
-    have hsize := (Array.size_pos_iff.mpr (maximalFan G C x y h).nonemptyAx)
-    specialize hF' ((maximalFan G C x y h).val.toList.length - 1)
-      (Nat.sub_one_lt (Nat.ne_zero_of_lt hsize))
-    have hcolor := F.colorAx ((maximalFan G C x y h).val.toList.length - 1)
-      (by simp; apply Nat.sub_lt_sub_right hsize hlt)
-    simp at hF' hcolor
-    simp_rw [Nat.sub_add_cancel hsize, ← hF'] at hcolor
-    contrapose! hcolor
-    simp [maximalFan]
-    apply mkMaxFan_maximal
-    all_goals simp_all only [maximalFan]
+  · have := chain'_exists_mem_notMem_of_nodup_prefix_length_lt
+      hF hlt (by simp; exact (maximalFan G C h).nonemptyAx) F.colorAx F.nodupAx
+    rcases this with ⟨a, h1, h2, h3, h4⟩
+    have := mkMaxFan_maximal G C h
+    contrapose! this
+    simp [fan_prop, maximalFan] at h2 h3 ⊢
+    use a
+    repeat any_goals apply And.intro
     · apply (List.mem_erase_of_ne ?_).mpr
-      · apply F.nborsAx
-        apply Array.getElem_mem_toList
-      · simp_rw [← F.firstElemAx]
-        have hc := (maximalFan G C x y h).nonemptyAx
-        simp [maximalFan, ← F.firstElemAx] at hc
-        contrapose! hc
+      · exact F.nborsAx h1
+      · rw [← F.firstElemAx, h4]
+        by_contra hc
         apply (List.Nodup.getElem_inj_iff F.nodupAx).mp at hc
-        exact Array.eq_empty_of_size_eq_zero hc
-    · have h := F.nodupAx
-      rw [← hF, List.nodup_middle] at h
-      apply List.Nodup.notMem at h
-      simp at h
-      exact h.left
+        simp at hc
+        exact (maximalFan G C h).nonemptyAx hc
+    repeat assumption
   · apply Array.toList_inj.mp
     apply Eq.symm
     apply List.IsPrefix.eq_of_length_le
@@ -80,12 +69,11 @@ def findSubfanWithColor (F : Fan G C x y) (a : Color c) : Fan G C x y where
     simp [takeUntil]
     exact F.firstElemAx
   colorAx := by
-    simp [colorAx, takeUntil]
-    intro i h
-    apply F.colorAx
-    simp_rw [← Nat.pred_eq_sub_one, ← Nat.pred_min_pred] at h
-    simp at h
-    exact h.right
+    simp [colorAx]
+    apply List.Chain'.prefix (l := F.val.toList)
+    · exact F.colorAx
+    · simp [← List.isPrefixOf_iff_prefix, Array.isPrefixOf_toList]
+      apply takeUntil_prefix
   nodupAx := by
     apply List.Sublist.nodup ?_ F.nodupAx
     apply List.IsPrefix.sublist

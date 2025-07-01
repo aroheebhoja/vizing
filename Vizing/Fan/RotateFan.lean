@@ -1,0 +1,140 @@
+import Vizing.Fan.Defs
+import Vizing.Pop
+
+namespace Fan
+open Graph
+open EdgeColoring
+open Aux
+
+variable
+  {n c : Nat} {G : Graph n} {C : EdgeColoring c G} {x y : Vertex n}
+  (F : Fan G C x y)
+
+/-
+Given a fan F[1:k] of a vertex X, the "rotate fan" operation does the
+following: for i = 1, ..., k–1, assign the color of (X,F[i + 1]) to
+edge (X,F[i]). Finally, uncolor (X, F[k]).
+
+This operation leaves the coloring valid because, by the definition of
+a fan, the color of (X,F[i+1]) was free on F[i].
+-/
+
+def removeLast (F : Fan G C x y) (h : F.val.size > 1) : Fan G C x y where
+  val := F.val.pop
+  nborsAx := by
+    intro u h
+    apply F.nborsAx
+    exact List.mem_of_mem_dropLast h
+  nonemptyAx := by
+    apply Array.size_pos_iff.mp
+    simpa
+  firstElemAx := by
+    simp
+    exact F.firstElemAx
+  colorAx := by
+    simp [colorAx]
+    apply List.Chain'.prefix
+    exact F.colorAx
+    exact List.dropLast_prefix F.val.toList
+  nodupAx := by
+    apply dropLast_nodup_of_nodup
+    exact F.nodupAx
+
+theorem last_present (F : Fan G C x y) :
+  present G (x, (last F)) := by
+  simp_rw [present, present_symm G (x, last F), and_self, last]
+  apply F.nborsAx
+  simp
+
+theorem not_in_fan (F : Fan G C x y) : x ∉ F.val := by
+  intro h
+  have h1 := F.nborsAx h.val
+  have h2 := G.noSelfLoopsAx x
+  simp [nbhd] at h1
+  contradiction
+
+def mkFan (a : Color c)
+  (hvalid : edgeColorValid G C (x, last F) a) (hsize : F.val.size > 1):
+  Fan G (setEdgeColor G C (x, last F) a (last_present F) hvalid) x y where
+  val := popElem F.val F.nonemptyAx
+  nborsAx := by
+    simp
+    intro u h
+    apply F.nborsAx
+    exact List.mem_of_mem_dropLast h
+  nonemptyAx := by
+    simp
+    apply Array.size_pos_iff.mp
+    simpa
+  firstElemAx := by
+    simp
+    exact F.firstElemAx
+  nodupAx := by
+    simp
+    apply dropLast_nodup_of_nodup
+    exact F.nodupAx
+  colorAx := by
+    have aux1 := freeColors_invariant G C (x, last F) a (last_present F) hvalid
+    have aux2 := color_invariant G C (x, last F) a (last_present F) hvalid
+    have aux3 := getLast_not_mem_dropLast_of_nodup (by simp; exact F.nonemptyAx) F.nodupAx
+    have aux4 := not_in_fan F
+    apply chain'_prefix (List.dropLast_prefix F.val.toList) (R := fan_prop G C x)
+    · intro a b ⟨h1, h2⟩ h3
+      simp_all
+      rwa [← aux1, ← aux2]
+      any_goals simp_all [last, Array.getLast_toList]
+      · contrapose! h2
+        rwa [h2]
+      · intro h
+        exfalso
+        exact aux4 (Array.mem_of_getElem (Eq.symm h))
+      · apply List.mem_of_mem_dropLast at h1
+        contrapose! h1
+        subst h1
+        simpa
+      · contrapose! h1
+        rwa [h1]
+    · exact F.colorAx
+
+def rotateFan (C : EdgeColoring c G) (F : Fan G C x y) (a : Color c)
+  (hvalid : edgeColorValid G C (x, last F) a)
+  : EdgeColoring c G :=
+  let a' := color c G C (x, last F)
+  let C' := setEdgeColor G C (x, last F) a (last_present F) hvalid
+  if h : F.val.size > 1 then
+  let F' := mkFan F a hvalid h
+  have hvalid' : edgeColorValid G C' (x, last F') a' := by
+    simp [edgeColorValid, C', a']
+    right
+    constructor
+    · have := setEdgeColor_freeOn G C (x, last F) (last_present F) a hvalid ?_
+      · simp at this
+        exact this.left
+      · apply fan_colored_edges x y F (last F)
+        all_goals simp [last]
+        exact back_neq F h
+    · have := freeColors_invariant G C (x, last F) a (last_present F) hvalid
+      rw [← this]
+      have := F.colorAx
+      simp [last, F', mkFan, Array.back]
+      apply chain'_rel_of_idx_consec (R := fan_prop G C x)
+      · assumption
+      · apply Nat.sub_one_add_one ?_ |> Eq.symm
+        exact Nat.sub_ne_zero_iff_lt.mpr h
+      · simp [last, Array.back, F', mkFan]
+        constructor
+        · have := not_in_fan F
+          contrapose! this
+          exact Array.mem_of_getElem this
+        · by_contra h
+          apply (List.Nodup.getElem_inj_iff F.nodupAx).mp at h
+          have := Nat.eq_add_of_sub_eq ?_ (Nat.sub_one_eq_self.mp h)
+          all_goals linarith
+  rotateFan C' F' a' hvalid'
+  else C'
+  termination_by F.val.size
+  decreasing_by
+    simp [mkFan]
+    exact Array.size_pos_iff.mpr F.nonemptyAx
+
+end Fan

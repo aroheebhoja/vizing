@@ -86,15 +86,13 @@ theorem chain'_rel_of_idx_consec {α : Type u} {R : α → α → Prop}
   apply List.chain'_iff_get.mp h1
   exact Nat.lt_sub_of_add_lt hj
 
-theorem chain'_exists_mem_notMem_of_nodup_prefix_length_lt
+theorem chain'_mem_notMem_of_nodup_prefix_length_lt
   {α : Type} {R : α → α → Prop}
   {l l₁ : List α} (h1 : l₁ <+: l) (h2 : l₁.length < l.length) (h3 : l₁ ≠ [])
   (h4 : List.Chain' R l) (h5 : l.Nodup) :
-   ∃ b ∈ l, b ∉ l₁ ∧ R (l₁.getLast h3) b ∧ b = l[l₁.length] := by
+   l[l₁.length] ∉ l₁ ∧ R (l₁.getLast h3) l[l₁.length] := by
   have aux := List.getLast_eq_getElem h3
-  use l[l₁.length]
   repeat any_goals apply And.intro
-  · exact List.getElem_mem h2
   · by_contra hc
     apply List.getElem_of_mem at hc
     rcases hc with ⟨i, hi, hc⟩
@@ -108,7 +106,6 @@ theorem chain'_exists_mem_notMem_of_nodup_prefix_length_lt
     apply (Nat.sub_eq_iff_eq_add ?_).mp rfl
     apply Nat.one_le_iff_ne_zero.mpr
     exact Nat.ne_zero_of_lt (List.length_pos_of_ne_nil h3)
-  · rfl
 
 theorem chain'_prefix {α : Type u} {R S : α → α → Prop}
   {l l₁ : List α} (h1 : l₁ <+: l) (h2 : ∀ a b, a ∈ l₁ ∧ b ∈ l₁ → R a b → S a b)

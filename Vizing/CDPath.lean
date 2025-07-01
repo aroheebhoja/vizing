@@ -28,7 +28,7 @@ colored c or d, no duplicates
 
 
 -/
-variable {n c : Nat} (G : Graph n) (C : EdgeColoring c G)
+variable {n c : Nat} {G : Graph n} (C : EdgeColoring c G)
 
 structure Path (a b : Color c) (x : Vertex n) where
   val : List (Vertex n)
@@ -56,12 +56,15 @@ Prove that a and b are now free on all interior vertices
 
 variable (a b : Color c) (x : Vertex n)
 
--- Takes an existing path and an endpoint, extends the path using a then b
-def extendPath (P : Path G C a b x)
-  (a b : Color c) (v : Vertex n) : Path G C a b x :=
-  match (nbhd G v).val.find? (fun x => true) with
-  | none => sorry
-  | some x => sorry
+-- Takes an existing path, extends it using a color d
+def extendPath (d : Color c) (P : List (Vertex n)) (h : P ≠ []) :
+  List (Vertex n) :=
+  let u := P.getLast h
+  match (nbhd G u).val.find? (fun v => color c G C (u, v) = d) with
+  | none => P
+  | some z => z :: P
+
+-- Maximal path: start at x extend using a, start at x extend using b, then join
 
 
 end Path

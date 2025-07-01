@@ -32,21 +32,23 @@ theorem maximalFan_spec : ∀ (F : Fan G C x y),
   intro F hF
   simp [isSubfan, ← Array.isPrefixOf_toList] at hF
   rcases (lt_or_eq_of_le (List.IsPrefix.length_le hF)) with hlt | heq
-  · have := chain'_exists_mem_notMem_of_nodup_prefix_length_lt
+  · have := chain'_mem_notMem_of_nodup_prefix_length_lt
       hF hlt (by simp; exact (maximalFan G C h).nonemptyAx) F.colorAx F.nodupAx
-    rcases this with ⟨a, h1, h2, h3, h4⟩
+    rcases this with ⟨h1, h2⟩
     have := mkMaxFan_maximal G C h
     contrapose! this
-    simp [fan_prop, maximalFan] at h2 h3 ⊢
-    use a
+    simp [fan_prop, maximalFan] at h1 h2 ⊢
+    use F.val[(mkMaxFan G C h).size]
     repeat any_goals apply And.intro
     · apply (List.mem_erase_of_ne ?_).mpr
-      · exact F.nborsAx h1
-      · rw [← F.firstElemAx, h4]
+      · exact F.nborsAx (by simp)
+      · simp_rw [← F.firstElemAx]
         by_contra hc
+        apply (maximalFan G C h).nonemptyAx
         apply (List.Nodup.getElem_inj_iff F.nodupAx).mp at hc
-        simp at hc
-        exact (maximalFan G C h).nonemptyAx hc
+        simp_rw [← Array.size_eq_zero_iff.mp hc, maximalFan]
+        congr
+        exact Eq.symm F.firstElemAx
     repeat assumption
   · apply Array.toList_inj.mp
     apply Eq.symm

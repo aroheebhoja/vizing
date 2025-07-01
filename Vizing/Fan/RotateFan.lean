@@ -121,15 +121,15 @@ def rotateFan (C : EdgeColoring c G) (F : Fan G C x y) (a : Color c)
       · assumption
       · apply Nat.sub_one_add_one ?_ |> Eq.symm
         exact Nat.sub_ne_zero_iff_lt.mpr h
-      · simp [last, Array.back, F', mkFan]
+      · simp [last, F', mkFan, -ne_eq]
         constructor
         · have := not_in_fan F
           contrapose! this
+          simp [Array.back] at this
           exact Array.mem_of_getElem this
-        · by_contra h
-          apply (List.Nodup.getElem_inj_iff F.nodupAx).mp at h
-          have := Nat.eq_add_of_sub_eq ?_ (Nat.sub_one_eq_self.mp h)
-          all_goals linarith
+        · have := pop_back F.val F.nonemptyAx h F.nodupAx
+          simp [popElem, -ne_eq] at this
+          exact Ne.symm this
   rotateFan C' F' a' hvalid'
   else C'
   termination_by F.val.size

@@ -1,5 +1,5 @@
 import Vizing.Graph
-import Vizing.EdgeColoring.Defs
+import Vizing.EdgeColoring.Lemmas
 
 set_option linter.dupNamespace false
 set_option push_neg.use_distrib true
@@ -20,11 +20,6 @@ Can't be a color we already used!
 (we don't need to specify any other edge invariants,
    because we know the edge is present in the graph)
 -/
-
-def allColors : List (Color c) := (List.finRange c).map some
-
-def freeColorsOn (v : Vertex n) :=
-  (allColors).filter (fun x => x ∉ incidentColorsOn C v)
 
 def edgeColorValid (e : Edge n) (a : Color c) : Prop :=
   a.isNone ∨ (a ∈ freeColorsOn C e.1 ∧ a ∈ freeColorsOn C e.2)

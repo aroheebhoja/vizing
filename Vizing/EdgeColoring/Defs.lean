@@ -1,7 +1,7 @@
 import Mathlib.Data.List.Lemmas
 import Mathlib.Data.Finset.Card
 import Vizing.Graph
-import Vizing.Upstream
+import Vizing.Aux
 
 set_option linter.dupNamespace false
 

@@ -31,6 +31,7 @@ colored c or d, no duplicates
 variable {n c : Nat} {G : Graph n} (C : EdgeColoring c G)
 
 section
+
 variable
   (l : List (Vertex n)) (hl : l.Nodup)
   (a b : Color c) (hab : a.isSome ∧ b.isSome)
@@ -104,6 +105,7 @@ theorem colorPred_eq_alternatesColor :
   constructor
   apply alternatesColor_of_colorPred; repeat assumption
   apply colorPred_of_alternatesColor; repeat assumption
+
 end
 
 structure Path (x : Vertex n) (a b : Color c) (h : a.isSome ∧ b.isSome) where
@@ -118,29 +120,5 @@ def singletonPath (a b : Color c) (x : Vertex n) (h : a.isSome ∧ b.isSome) :
   containsAx := by exact List.mem_singleton.mpr rfl
   nodupAx := by exact List.nodup_singleton x
   colorAx := by simp [alternatesColor]
-
-/-
-Function: convert vertex path to edge path
-[a, b, c, d] -> [(a, b), (b, c), (c, d)]
--/
-
-/-
-Invert path: partition edge path into a edges and b edges
-Uncolor all edges
-Prove that a and b are now free on all interior vertices
--/
-
-variable (a b : Color c) (x : Vertex n)
-
--- Takes an existing path, extends it using a color d
-def extendPath (d : Color c) (P : List (Vertex n)) (h : P ≠ []) :
-  List (Vertex n) :=
-  let u := P.getLast h
-  match (nbhd G u).val.find? (fun v => color c G C (u, v) = d) with
-  | none => P
-  | some z => z :: P
-
--- Maximal path: start at x extend using a, start at x extend using b, then join
-
 
 end Path

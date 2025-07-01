@@ -1,5 +1,4 @@
 import Vizing.Fan.Defs
-import Vizing.Pop
 
 namespace Fan
 open Graph

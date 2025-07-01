@@ -1,5 +1,4 @@
 import Vizing.Graph
-import Vizing.SetSet
 import Vizing.EdgeColoring.Defs
 
 set_option linter.dupNamespace false

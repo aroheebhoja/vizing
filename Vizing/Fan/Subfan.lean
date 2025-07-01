@@ -1,5 +1,4 @@
 import Vizing.Fan.Maximal
-import Vizing.TakeUntil
 
 set_option linter.dupNamespace false
 set_option push_neg.use_distrib true

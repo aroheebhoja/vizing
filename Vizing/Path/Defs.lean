@@ -9,7 +9,7 @@ open Graph
 open EdgeColoring
 open Aux
 
-variable {c n : Nat} (G : Graph n) (C : EdgeColoring c G)
+variable {c n : Nat} {G : Graph n} (C : EdgeColoring c G)
 
 /-
 Let c and d be colors. A cdX-path is an edge path that goes through vertex X,
@@ -37,13 +37,13 @@ variable
   (a b : Color c) (hab : a.isSome ∧ b.isSome)
 
 def colorPred :=
-  l.Chain' (fun v₁ v₂ ↦ color c G C (v₁, v₂) = a ∨ color c G C (v₁, v₂) = b)
+  l.Chain' (fun v₁ v₂ ↦ color C (v₁, v₂) = a ∨ color C (v₁, v₂) = b)
 
 def alternatesColor : Prop :=
   aux a b l ∨ aux b a l where
 @[simp]
 aux (a b : Color c) : List (Vertex n) → Prop
-  | v₁ :: (v₂ :: vs) => color c G C (v₁, v₂) = a ∧ aux b a (v₂ :: vs)
+  | v₁ :: (v₂ :: vs) => color C (v₁, v₂) = a ∧ aux b a (v₂ :: vs)
   | _ => true
 
 include hl hab in
@@ -63,7 +63,7 @@ theorem alternatesColor_of_colorPred :
     · simpa
     · rename_i vs v₃ rest
       have := color_unique C v₂ v₁ v₃
-      have aux1 : color c G C (v₁, v₂) ≠ none := by
+      have aux1 : color C (v₁, v₂) ≠ none := by
         apply Option.isSome_iff_ne_none.mp
         rcases h1 with h1 | h1
         all_goals subst h1; tauto

@@ -7,7 +7,7 @@ open Aux
 
 variable
   {n c : Nat} {G : Graph n} {C : EdgeColoring c G} {x y : Vertex n}
-  (F : Fan G C x y)
+  (F : Fan C x y)
 
 /-
 Given a fan F[1:k] of a vertex X, the "rotate fan" operation does the
@@ -18,7 +18,7 @@ This operation leaves the coloring valid because, by the definition of
 a fan, the color of (X,F[i+1]) was free on F[i].
 -/
 
-def removeLast (F : Fan G C x y) (h : F.val.size > 1) : Fan G C x y where
+def removeLast (F : Fan C x y) (h : F.val.size > 1) : Fan C x y where
   val := F.val.pop
   nborsAx := by
     intro u h
@@ -39,13 +39,13 @@ def removeLast (F : Fan G C x y) (h : F.val.size > 1) : Fan G C x y where
     apply dropLast_nodup_of_nodup
     exact F.nodupAx
 
-theorem last_present (F : Fan G C x y) :
+theorem last_present (F : Fan C x y) :
   present G (x, (last F)) := by
   simp_rw [present, present_symm G (x, last F), and_self, last]
   apply F.nborsAx
   simp
 
-theorem not_in_fan (F : Fan G C x y) : x ∉ F.val := by
+theorem not_in_fan (F : Fan C x y) : x ∉ F.val := by
   intro h
   have h1 := F.nborsAx h.val
   have h2 := G.noSelfLoopsAx x
@@ -53,8 +53,8 @@ theorem not_in_fan (F : Fan G C x y) : x ∉ F.val := by
   contradiction
 
 def mkFan (a : Color c)
-  (hvalid : edgeColorValid G C (x, last F) a) (hsize : F.val.size > 1):
-  Fan G (setEdgeColor G C (x, last F) a (last_present F) hvalid) x y where
+  (hvalid : edgeColorValid C (x, last F) a) (hsize : F.val.size > 1):
+  Fan (setEdgeColor C (x, last F) a (last_present F) hvalid) x y where
   val :=  F.val.pop
   nborsAx := by
     simp
@@ -77,7 +77,7 @@ def mkFan (a : Color c)
     have aux2 := color_invariant C (x, last F) a (last_present F) hvalid
     have aux3 := getLast_not_mem_dropLast_of_nodup (by simp; exact F.nonemptyAx) F.nodupAx
     have aux4 := not_in_fan F
-    apply chain'_prefix (List.dropLast_prefix F.val.toList) (R := fan_prop G C x)
+    apply chain'_prefix (List.dropLast_prefix F.val.toList) (R := fan_prop C x)
     · intro a b ⟨h1, h2⟩ h3
       simp_all
       rwa [← aux1, ← aux2]
@@ -95,14 +95,14 @@ def mkFan (a : Color c)
         rwa [h1]
     · exact F.colorAx
 
-def rotateFan (C : EdgeColoring c G) (F : Fan G C x y) (a : Color c)
-  (hvalid : edgeColorValid G C (x, last F) a)
+def rotateFan (C : EdgeColoring c G) (F : Fan C x y) (a : Color c)
+  (hvalid : edgeColorValid C (x, last F) a)
   : EdgeColoring c G :=
-  let a' := color c G C (x, last F)
-  let C' := setEdgeColor G C (x, last F) a (last_present F) hvalid
+  let a' := color C (x, last F)
+  let C' := setEdgeColor C (x, last F) a (last_present F) hvalid
   if h : F.val.size > 1 then
   let F' := mkFan F a hvalid h
-  have hvalid' : edgeColorValid G C' (x, last F') a' := by
+  have hvalid' : edgeColorValid C' (x, last F') a' := by
     simp [edgeColorValid, C', a']
     right
     constructor
@@ -116,7 +116,7 @@ def rotateFan (C : EdgeColoring c G) (F : Fan G C x y) (a : Color c)
       rw [← this]
       have := F.colorAx
       simp [last, F', mkFan, Array.back]
-      apply chain'_rel_of_idx_consec (R := fan_prop G C x)
+      apply chain'_rel_of_idx_consec (R := fan_prop C x)
       · assumption
       · apply Nat.sub_one_add_one ?_ |> Eq.symm
         exact Nat.sub_ne_zero_iff_lt.mpr h

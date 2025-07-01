@@ -22,9 +22,9 @@ a maximal fan from an edge (x, y).
 
 -/
 
-variable {n c : Nat} (G : Graph n) (C : EdgeColoring c G)
+variable {n c : Nat} {G : Graph n} (C : EdgeColoring c G)
 
-def singletonFan {x y : Vertex n} (h : present G (x, y)) : Fan G C x y where
+def singletonFan {x y : Vertex n} (h : present G (x, y)) : Fan C x y where
   val := #[y]
   nborsAx := by
     simp
@@ -37,7 +37,7 @@ def singletonFan {x y : Vertex n} (h : present G (x, y)) : Fan G C x y where
 def add (x y : Vertex n) (F : Array (Vertex n)) (nbors : List (Vertex n))
   (h : F ≠ #[]) :=
   match (List.attach nbors).find? (fun ⟨z, _⟩ ↦
-    color c G C (x, z) ∈ freeColorsOn G C (F.back (Array.size_pos_iff.mpr h))) with
+    color C (x, z) ∈ freeColorsOn C (F.back (Array.size_pos_iff.mpr h))) with
   | some z => add x y (F.push z.val) (nbors.erase z.val) Array.push_ne_empty
   | none => F
   termination_by nbors.length
@@ -51,8 +51,8 @@ def add (x y : Vertex n) (F : Array (Vertex n)) (nbors : List (Vertex n))
 theorem add_nborsAx (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hne : F ≠ #[]) (h : F.toList ⊆ (nbhd G x).val)
   (hn : nbors ⊆ (nbhd G x).val) :
-  (add G C x y F nbors hne).toList ⊆ (nbhd G x).val := by
-  fun_induction add G C x y F nbors hne
+  (add C x y F nbors hne).toList ⊆ (nbhd G x).val := by
+  fun_induction add C x y F nbors hne
   · rename_i F nbors hne z hz ih
     simp_all
     apply ih
@@ -62,22 +62,22 @@ theorem add_nborsAx (x y : Vertex n) (F : Array (Vertex n))
 
 theorem add_nonemptyAx (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hne : F ≠ #[]) :
-  (add G C x y F nbors hne) ≠ #[] := by
-  fun_induction add G C x y F nbors hne <;> simp_all
+  (add C x y F nbors hne) ≠ #[] := by
+  fun_induction add C x y F nbors hne <;> simp_all
 
 theorem add_preserves_mem (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hne : F ≠ #[]) :
-  ∀ a, a ∈ F → a ∈ add G C x y F nbors hne := by
+  ∀ a, a ∈ F → a ∈ add C x y F nbors hne := by
   intro a ha
-  fun_induction add G C x y F nbors hne <;> simp_all
+  fun_induction add C x y F nbors hne <;> simp_all
 
 theorem add_maximal (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hne : F ≠ #[]) :
-  ∀ z ∈ nbors, z ∉ (add G C x y F nbors hne) →
-    color c G C (x, z) ∉ (freeColorsOn G C
-    ((add G C x y F nbors hne).back (Array.size_pos_iff.mpr
-      (add_nonemptyAx G C x y F nbors hne)))) := by
-  fun_induction add G C x y F nbors hne
+  ∀ z ∈ nbors, z ∉ (add C x y F nbors hne) →
+    color C (x, z) ∉ (freeColorsOn C
+    ((add C x y F nbors hne).back (Array.size_pos_iff.mpr
+      (add_nonemptyAx C x y F nbors hne)))) := by
+  fun_induction add C x y F nbors hne
   · rename_i F nbors hne z hz ih
     unfold add
     simp_all
@@ -87,7 +87,7 @@ theorem add_maximal (x y : Vertex n) (F : Array (Vertex n))
     any_goals assumption
     contrapose! hw2
     subst hw2
-    exact add_preserves_mem G C x y (F.push z) (nbors.erase z)
+    exact add_preserves_mem C x y (F.push z) (nbors.erase z)
       Array.push_ne_empty z.val Array.mem_push_self
   · rename_i nbors hne h
     unfold add
@@ -99,9 +99,9 @@ theorem add_maximal (x y : Vertex n) (F : Array (Vertex n))
 theorem add_firstElemAx (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hne : F ≠ #[])
   (h : F[0]'(Array.size_pos_iff.mpr hne) = y) :
-  (add G C x y F nbors hne)[0]'(Array.size_pos_iff.mpr
-    (add_nonemptyAx G C x y F nbors hne)) = y := by
-  fun_induction add G C x y F nbors hne
+  (add C x y F nbors hne)[0]'(Array.size_pos_iff.mpr
+    (add_nonemptyAx C x y F nbors hne)) = y := by
+  fun_induction add C x y F nbors hne
   · rename_i F nbors hne z hz ih
     unfold add; simp_all only
     apply ih
@@ -109,9 +109,9 @@ theorem add_firstElemAx (x y : Vertex n) (F : Array (Vertex n))
   · unfold add; simp_all only
 
 theorem add_colorAx (x y : Vertex n) (F : Array (Vertex n))
-  (nbors : List (Vertex n)) (hne : F ≠ #[]) (h : colorAx G C F x) :
-  colorAx G C (add G C x y F nbors hne) x := by
-  fun_induction add G C x y F nbors hne
+  (nbors : List (Vertex n)) (hne : F ≠ #[]) (h : colorAx C F x) :
+  colorAx C (add C x y F nbors hne) x := by
+  fun_induction add C x y F nbors hne
   · rename_i F nbors hne z hz ih
     simp_all only
     apply ih
@@ -130,8 +130,8 @@ theorem add_colorAx (x y : Vertex n) (F : Array (Vertex n))
 theorem add_nodupAx (x y : Vertex n) (F : Array (Vertex n))
   (nbors : List (Vertex n)) (hn : nbors.Nodup) (hne : F ≠ #[]) (h : F.toList.Nodup)
   (hdisjoint : List.Disjoint nbors F.toList) :
-  (add G C x y F nbors hne).toList.Nodup := by
-  fun_induction add G C x y F nbors hne
+  (add C x y F nbors hne).toList.Nodup := by
+  fun_induction add C x y F nbors hne
   · rename_i F nbors hne z hz ih
     simp_all only
     apply ih
@@ -154,11 +154,11 @@ theorem add_nodupAx (x y : Vertex n) (F : Array (Vertex n))
 variable {x y : Vertex n}
 
 def mkMaxFan {x y : Vertex n} (h : present G (x, y)) : Array (Vertex n) :=
-  add G C x y (singletonFan G C h).val
-  ((nbhd G x).val.erase y) (singletonFan G C h).nonemptyAx
+  add C x y (singletonFan C h).val
+  ((nbhd G x).val.erase y) (singletonFan C h).nonemptyAx
 
 theorem mkMaxFan_nborsAx (hpres : present G (x, y)) :
-  (mkMaxFan G C hpres).toList ⊆ (nbhd G x).val := by
+  (mkMaxFan C hpres).toList ⊆ (nbhd G x).val := by
   simp [mkMaxFan, singletonFan]
   simp [present] at hpres
   apply add_nborsAx
@@ -167,21 +167,21 @@ theorem mkMaxFan_nborsAx (hpres : present G (x, y)) :
   · exact List.erase_subset
 
 theorem mkMaxFan_nonemptyAx (hpres : present G (x, y)) :
-  mkMaxFan G C hpres ≠ #[] := by
+  mkMaxFan C hpres ≠ #[] := by
   simp [mkMaxFan, singletonFan, add_nonemptyAx]
 
 theorem mkMaxFan_firstElemAx (hpres : present G (x, y)) :
-  (mkMaxFan G C hpres)[0]'(by
-  exact Array.size_pos_iff.mpr (mkMaxFan_nonemptyAx G C hpres))
+  (mkMaxFan C hpres)[0]'(by
+  exact Array.size_pos_iff.mpr (mkMaxFan_nonemptyAx C hpres))
   = y := by
   simp [mkMaxFan, singletonFan, add_firstElemAx]
 
 theorem mkMaxFan_colorAx (hpres : present G (x, y)) :
-  colorAx G C (mkMaxFan G C hpres) x := by
-  simp [mkMaxFan, (singletonFan G C hpres).colorAx, add_colorAx]
+  colorAx C (mkMaxFan C hpres) x := by
+  simp [mkMaxFan, (singletonFan C hpres).colorAx, add_colorAx]
 
 theorem mkMaxFan_nodupAx (hpres : present G (x, y)) :
-  (mkMaxFan G C hpres).toList.Nodup := by
+  (mkMaxFan C hpres).toList.Nodup := by
   simp [mkMaxFan, singletonFan]
   apply add_nodupAx
   · apply List.Nodup.erase y
@@ -192,19 +192,19 @@ theorem mkMaxFan_nodupAx (hpres : present G (x, y)) :
     exact (nbhd G x).nodupAx
 
 theorem mkMaxFan_maximal (hpres : present G (x, y)) :
-  ∀ z ∈ ((nbhd G x).val.erase y), z ∉ mkMaxFan G C hpres →
-    color c G C (x, z) ∉ (freeColorsOn G C
-    ((mkMaxFan G C hpres).back (Array.size_pos_iff.mpr
-      (mkMaxFan_nonemptyAx G C hpres)))) := by
+  ∀ z ∈ ((nbhd G x).val.erase y), z ∉ mkMaxFan C hpres →
+    color C (x, z) ∉ (freeColorsOn C
+    ((mkMaxFan C hpres).back (Array.size_pos_iff.mpr
+      (mkMaxFan_nonemptyAx C hpres)))) := by
   simp [mkMaxFan, singletonFan]
   apply add_maximal
 
-def maximalFan {x y : Vertex n} (h : present G (x, y)) : Fan G C x y where
-  val := mkMaxFan G C h
-  nborsAx := mkMaxFan_nborsAx G C h
-  firstElemAx := mkMaxFan_firstElemAx G C h
-  nonemptyAx := mkMaxFan_nonemptyAx G C h
-  colorAx := mkMaxFan_colorAx G C h
-  nodupAx := mkMaxFan_nodupAx G C h
+def maximalFan {x y : Vertex n} (h : present G (x, y)) : Fan C x y where
+  val := mkMaxFan C h
+  nborsAx := mkMaxFan_nborsAx C h
+  firstElemAx := mkMaxFan_firstElemAx C h
+  nonemptyAx := mkMaxFan_nonemptyAx C h
+  colorAx := mkMaxFan_colorAx C h
+  nodupAx := mkMaxFan_nodupAx C h
 
 end Fan

@@ -9,26 +9,26 @@ variable {n : Nat} {c : Nat} {G : Graph n} (C : EdgeColoring c G)
 
 
 theorem incidentColors_invariant (e : Edge n) (a : Color c)
-  (hpres : present G e) (hvalid : edgeColorValid G C e a) :
-  ∀ v : Vertex n, v ≠ e.1 ∧ v ≠ e.2 → incidentColorsOn c G C v =
-    incidentColorsOn c G (setEdgeColor G C e a hpres hvalid) v := by
+  (hpres : present G e) (hvalid : edgeColorValid C e a) :
+  ∀ v : Vertex n, v ≠ e.1 ∧ v ≠ e.2 → incidentColorsOn C v =
+    incidentColorsOn (setEdgeColor C e a hpres hvalid) v := by
   intro v _
   simp [incidentColorsOn, setEdgeColor]
-  have := setEdge_spec4 G C e a v (by tauto)
+  have := setEdge_spec4 C e a v (by tauto)
   rw [this]
 
 theorem freeColors_invariant (e : Edge n) (a : Color c)
-  (hpres : present G e) (hvalid : edgeColorValid G C e a) :
-  ∀ v : Vertex n, v ≠ e.1 ∧ v ≠ e.2 → freeColorsOn G C v =
-    freeColorsOn G (setEdgeColor G C e a hpres hvalid) v := by
+  (hpres : present G e) (hvalid : edgeColorValid C e a) :
+  ∀ v : Vertex n, v ≠ e.1 ∧ v ≠ e.2 → freeColorsOn C v =
+    freeColorsOn (setEdgeColor C e a hpres hvalid) v := by
   intro v h
   simp only [freeColorsOn]
   rw [incidentColors_invariant C e a hpres hvalid v h]
 
 theorem color_invariant (e : Edge n) (a : Color c)
-  (hpres : present G e) (hvalid : edgeColorValid G C e a) :
+  (hpres : present G e) (hvalid : edgeColorValid C e a) :
   ∀ f : Edge n, f ≠ e ∧ f ≠ (e.2, e.1) →
-  color c G C f = color c G (setEdgeColor G C e a hpres hvalid) f := by
+  color C f = color (setEdgeColor C e a hpres hvalid) f := by
   intro f h
   simp [setEdgeColor]
   apply setEdge_spec3
@@ -36,7 +36,7 @@ theorem color_invariant (e : Edge n) (a : Color c)
   tauto
 
 theorem existsFreeColor (h : ↑(maxDegree G) < c) :
-  ∀ v : Vertex n, (freeColorsOn G C v) ≠ [] := by
+  ∀ v : Vertex n, (freeColorsOn C v) ≠ [] := by
   intro v
   simp [freeColorsOn]
   apply exists_mem_notMem_of_nodup_of_len_lt
@@ -71,23 +71,23 @@ theorem existsFreeColor (h : ↑(maxDegree G) < c) :
     · exact List.nodup_finRange c
     · exact Option.some_injective (Fin c)
   · simp [incident_colors_of_colored_nbors, allColors, List.length_finRange]
-    have hlt : (coloredNbors c G C v).val.length < c := by
-      have h1 := colored_nbhd_size_le c G C v
+    have hlt : (coloredNbors C v).val.length < c := by
+      have h1 := colored_nbhd_size_le C v
       have h2 := maxDegree_spec G v
       exact lt_of_le_of_lt (le_trans h1 h2) h
     have hle : (List.filter Option.isSome
-      (List.map (fun x ↦ color c G C (v, x))
-      (coloredNbors c G C v).val)).length ≤
-      (coloredNbors c G C v).val.length := by
+      (List.map (fun x ↦ color C (v, x))
+      (coloredNbors C v).val)).length ≤
+      (coloredNbors C v).val.length := by
       have := List.length_filter_le Option.isSome
-            (List.map (fun x ↦ color c G C (v, x)) (coloredNbors c G C v).val)
+            (List.map (fun x ↦ color C (v, x)) (coloredNbors C v).val)
       rw [List.length_map] at this
       exact this
     exact Nat.lt_of_le_of_lt hle hlt
 
 theorem newColor_not_eq_oldColor (e : Edge n) (a : Color c)
-  (hvalid : edgeColorValid G C e a) (hcolor : (color c G C e).isSome) :
-  a ≠ color c G C e := by
+  (hvalid : edgeColorValid C e a) (hcolor : (color C e).isSome) :
+  a ≠ color C e := by
   intro hc
   simp [edgeColorValid, freeColorsOn, incidentColorsOn] at hvalid
   rcases hvalid with h | h
@@ -100,7 +100,7 @@ theorem newColor_not_eq_oldColor (e : Edge n) (a : Color c)
       simp [allColors] at h
       rcases h with ⟨b, hb⟩
       use b; exact Eq.symm hb
-    have aux2 : color c G C e ∈ C.val[e.1]'(by rw [C.sizeAx1]; exact e.1.isLt) := by
+    have aux2 : color C e ∈ C.val[e.1]'(by rw [C.sizeAx1]; exact e.1.isLt) := by
       simp [color]
     rcases h with ⟨⟨_, h⟩, ⟨_, _⟩⟩
     simp [aux1] at h
@@ -109,14 +109,14 @@ theorem newColor_not_eq_oldColor (e : Edge n) (a : Color c)
     contradiction
 
 theorem setEdgeColor_freeOn (e : Edge n) (hpres : present G e) (a : Color c)
-  (hvalid : edgeColorValid G C e a) (hcolor : (color c G C e).isSome) :
-  color c G C e ∈ freeColorsOn G (setEdgeColor G C e a hpres hvalid) e.1 ∧
-  color c G C e ∈ freeColorsOn G (setEdgeColor G C e a hpres hvalid) e.2 := by
+  (hvalid : edgeColorValid C e a) (hcolor : (color C e).isSome) :
+  color C e ∈ freeColorsOn (setEdgeColor C e a hpres hvalid) e.1 ∧
+  color C e ∈ freeColorsOn (setEdgeColor C e a hpres hvalid) e.2 := by
   have hne := newColor_not_eq_oldColor C e a hvalid hcolor
   simp [edgeColorValid] at hvalid
   simp_all [color, freeColorsOn, incidentColorsOn]
   have := C.validAx
-  have hloop := edge_not_self_loop G e hpres
+  have hloop := edge_not_self_loop e hpres
   have aux := set_set_spec3 n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2 e.2 hloop
   repeat any_goals apply And.intro
   any_goals
@@ -128,7 +128,7 @@ theorem setEdgeColor_freeOn (e : Edge n) (hpres : present G e) (a : Color c)
     specialize this e.1 e.2 hcolor
     apply Array.not_mem_of_count_eq_zero
     simp [setEdgeColor]
-    rw [setEdge_spec5 G C e a hpres]
+    rw [setEdge_spec5 C e a hpres]
     split_ifs <;> simp_all
   · left
     specialize this e.2 e.1 (by simp_rw [← Fin.getElem_fin, C.symmAx e.1 e.2] at hcolor; assumption)
@@ -141,8 +141,8 @@ theorem setEdgeColor_freeOn (e : Edge n) (hpres : present G e) (a : Color c)
     exact hne
 
 theorem color_unique (u v₁ v₂ : Vertex n) :
-  color c G C (u, v₁) = color c G C (u, v₂) →
-  (color c G C (u, v₁)).isNone ∨ v₁ = v₂ := by
+  color C (u, v₁) = color C (u, v₂) →
+  (color C (u, v₁)).isNone ∨ v₁ = v₂ := by
   intro h
   simp [color] at h
   by_cases heq : v₁ = v₂
@@ -163,8 +163,11 @@ theorem color_unique (u v₁ v₂ : Vertex n) :
       exact Fin.val_ne_of_ne heq
 
 theorem color_symm (v₁ v₂ : Vertex n) :
-  color c G C (v₁, v₂) = color c G C (v₂, v₁) := by
+  color C (v₁, v₂) = color C (v₂, v₁) := by
   simp only [color]
   exact C.symmAx v₁ v₂
+
+def findNborWithColor (v : Vertex n) (a : Color c) : Option (Vertex n) :=
+  (nbhd G v).val.find? (fun v' => color C (v, v') = a)
 
 end EdgeColoring

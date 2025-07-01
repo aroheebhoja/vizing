@@ -24,7 +24,7 @@ a maximal fan from an edge (x, y).
 
 variable {n c : Nat} (G : Graph n) (C : EdgeColoring c G)
 
-def default {x y : Vertex n} (h : present G (x, y)) : Fan G C x y where
+def singletonFan {x y : Vertex n} (h : present G (x, y)) : Fan G C x y where
   val := #[y]
   nborsAx := by
     simp
@@ -154,12 +154,12 @@ theorem add_nodupAx (x y : Vertex n) (F : Array (Vertex n))
 variable {x y : Vertex n}
 
 def mkMaxFan {x y : Vertex n} (h : present G (x, y)) : Array (Vertex n) :=
-  add G C x y (default G C h).val
-  ((nbhd G x).val.erase y) (default G C h).nonemptyAx
+  add G C x y (singletonFan G C h).val
+  ((nbhd G x).val.erase y) (singletonFan G C h).nonemptyAx
 
 theorem mkMaxFan_nborsAx (hpres : present G (x, y)) :
   (mkMaxFan G C hpres).toList ⊆ (nbhd G x).val := by
-  simp [mkMaxFan, default]
+  simp [mkMaxFan, singletonFan]
   simp [present] at hpres
   apply add_nborsAx
   · simp
@@ -168,21 +168,21 @@ theorem mkMaxFan_nborsAx (hpres : present G (x, y)) :
 
 theorem mkMaxFan_nonemptyAx (hpres : present G (x, y)) :
   mkMaxFan G C hpres ≠ #[] := by
-  simp [mkMaxFan, default, add_nonemptyAx]
+  simp [mkMaxFan, singletonFan, add_nonemptyAx]
 
 theorem mkMaxFan_firstElemAx (hpres : present G (x, y)) :
   (mkMaxFan G C hpres)[0]'(by
   exact Array.size_pos_iff.mpr (mkMaxFan_nonemptyAx G C hpres))
   = y := by
-  simp [mkMaxFan, default, add_firstElemAx]
+  simp [mkMaxFan, singletonFan, add_firstElemAx]
 
 theorem mkMaxFan_colorAx (hpres : present G (x, y)) :
   colorAx G C (mkMaxFan G C hpres) x := by
-  simp [mkMaxFan, (default G C hpres).colorAx, add_colorAx]
+  simp [mkMaxFan, (singletonFan G C hpres).colorAx, add_colorAx]
 
 theorem mkMaxFan_nodupAx (hpres : present G (x, y)) :
   (mkMaxFan G C hpres).toList.Nodup := by
-  simp [mkMaxFan, default]
+  simp [mkMaxFan, singletonFan]
   apply add_nodupAx
   · apply List.Nodup.erase y
     exact (nbhd G x).nodupAx
@@ -196,7 +196,7 @@ theorem mkMaxFan_maximal (hpres : present G (x, y)) :
     color c G C (x, z) ∉ (freeColorsOn G C
     ((mkMaxFan G C hpres).back (Array.size_pos_iff.mpr
       (mkMaxFan_nonemptyAx G C hpres)))) := by
-  simp [mkMaxFan, default]
+  simp [mkMaxFan, singletonFan]
   apply add_maximal
 
 def maximalFan {x y : Vertex n} (h : present G (x, y)) : Fan G C x y where

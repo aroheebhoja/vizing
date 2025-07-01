@@ -74,8 +74,8 @@ def mkFan (a : Color c)
     apply dropLast_nodup_of_nodup
     exact F.nodupAx
   colorAx := by
-    have aux1 := freeColors_invariant G C (x, last F) a (last_present F) hvalid
-    have aux2 := color_invariant G C (x, last F) a (last_present F) hvalid
+    have aux1 := freeColors_invariant C (x, last F) a (last_present F) hvalid
+    have aux2 := color_invariant C (x, last F) a (last_present F) hvalid
     have aux3 := getLast_not_mem_dropLast_of_nodup (by simp; exact F.nonemptyAx) F.nodupAx
     have aux4 := not_in_fan F
     apply chain'_prefix (List.dropLast_prefix F.val.toList) (R := fan_prop G C x)
@@ -107,13 +107,13 @@ def rotateFan (C : EdgeColoring c G) (F : Fan G C x y) (a : Color c)
     simp [edgeColorValid, C', a']
     right
     constructor
-    · have := setEdgeColor_freeOn G C (x, last F) (last_present F) a hvalid ?_
+    · have := setEdgeColor_freeOn C (x, last F) (last_present F) a hvalid ?_
       · simp at this
         exact this.left
       · apply fan_colored_edges x y F (last F)
         all_goals simp [last]
         exact back_neq F h
-    · have := freeColors_invariant G C (x, last F) a (last_present F) hvalid
+    · have := freeColors_invariant C (x, last F) a (last_present F) hvalid
       rw [← this]
       have := F.colorAx
       simp [last, F', mkFan, Array.back]

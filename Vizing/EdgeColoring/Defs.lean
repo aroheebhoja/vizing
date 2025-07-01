@@ -124,7 +124,7 @@ theorem colored_nbhd_size_le (v : Vertex n) :
   · exact N.nodupAx
   · exact colored_nbors_subset_nbors c G C v
 
-def default : EdgeColoring c G where
+def empty : EdgeColoring c G where
   val := Array.replicate n (Array.replicate n none)
   sizeAx1 := by simp only [Array.size_replicate]
   sizeAx2 := by simp

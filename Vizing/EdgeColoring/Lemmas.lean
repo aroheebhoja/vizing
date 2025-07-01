@@ -5,7 +5,7 @@ namespace EdgeColoring
 open Graph
 open Aux
 
-variable {n : Nat} {c : Nat} (G : Graph n) (C : EdgeColoring c G)
+variable {n : Nat} {c : Nat} {G : Graph n} (C : EdgeColoring c G)
 
 
 theorem incidentColors_invariant (e : Edge n) (a : Color c)
@@ -23,7 +23,7 @@ theorem freeColors_invariant (e : Edge n) (a : Color c)
     freeColorsOn G (setEdgeColor G C e a hpres hvalid) v := by
   intro v h
   simp only [freeColorsOn]
-  rw [incidentColors_invariant G C e a hpres hvalid v h]
+  rw [incidentColors_invariant C e a hpres hvalid v h]
 
 theorem color_invariant (e : Edge n) (a : Color c)
   (hpres : present G e) (hvalid : edgeColorValid G C e a) :
@@ -112,7 +112,7 @@ theorem setEdgeColor_freeOn (e : Edge n) (hpres : present G e) (a : Color c)
   (hvalid : edgeColorValid G C e a) (hcolor : (color c G C e).isSome) :
   color c G C e ∈ freeColorsOn G (setEdgeColor G C e a hpres hvalid) e.1 ∧
   color c G C e ∈ freeColorsOn G (setEdgeColor G C e a hpres hvalid) e.2 := by
-  have hne := newColor_not_eq_oldColor G C e a hvalid hcolor
+  have hne := newColor_not_eq_oldColor C e a hvalid hcolor
   simp [edgeColorValid] at hvalid
   simp_all [color, freeColorsOn, incidentColorsOn]
   have := C.validAx
@@ -139,5 +139,32 @@ theorem setEdgeColor_freeOn (e : Edge n) (hpres : present G e) (a : Color c)
     simp [← aux, this]
     simp_rw [← Fin.getElem_fin, C.symmAx e.1 e.2, Fin.getElem_fin] at hne
     exact hne
+
+theorem color_unique (u v₁ v₂ : Vertex n) :
+  color c G C (u, v₁) = color c G C (u, v₂) →
+  (color c G C (u, v₁)).isNone ∨ v₁ = v₂ := by
+  intro h
+  simp [color] at h
+  by_cases heq : v₁ = v₂
+  · right; assumption
+  · simp_all only [Option.isNone_iff_eq_none, or_false]
+    apply beq_iff_eq.mpr at h
+    have h1 := v₁.prop
+    have h2 := v₂.prop
+    simp_rw [← C.sizeAx2 u] at h1 h2
+    have hc := @one_lt_count _ _ _ _ ⟨v₁, h1⟩ ⟨v₂, h2⟩ ?_ h
+    · simp at hc
+      have := C.validAx u v₁
+      contrapose! this
+      constructor
+      · exact Option.isSome_iff_ne_none.mpr this
+      · exact Ne.symm (Nat.ne_of_lt hc)
+    · simp only [Fin.getElem_fin, ne_eq, Fin.mk.injEq]
+      exact Fin.val_ne_of_ne heq
+
+theorem color_symm (v₁ v₂ : Vertex n) :
+  color c G C (v₁, v₂) = color c G C (v₂, v₁) := by
+  simp only [color]
+  exact C.symmAx v₁ v₂
 
 end EdgeColoring

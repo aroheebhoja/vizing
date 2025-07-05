@@ -124,6 +124,22 @@ theorem color_unique (u v₁ v₂ : Vertex n) :
     · simp only [Fin.getElem_fin, ne_eq, Fin.mk.injEq]
       exact Fin.val_ne_of_ne heq
 
+theorem color_neq (u v₁ v₂ : Vertex n)
+  (h1 : (color C (u, v₁)).isSome) (h2 : v₁ ≠ v₂) :
+  color C (u, v₁) ≠ color C (u, v₂) := by
+  by_contra h
+  apply color_unique at h
+  simp_all
+
+theorem color_unique_of_isSome (u v₁ v₂ : Vertex n)
+  (h1 : (color C (u, v₁)).isSome) :
+  color C (u, v₁) = color C (u, v₂) → v₁ = v₂ := by
+  intro h
+  apply color_unique at h
+  apply (Or.resolve_left h)
+  simp only [Option.isNone_iff_eq_none]
+  exact Option.isSome_iff_ne_none.mp h1
+
 theorem color_symm (v₁ v₂ : Vertex n) :
   color C (v₁, v₂) = color C (v₂, v₁) := by
   simp only [color]

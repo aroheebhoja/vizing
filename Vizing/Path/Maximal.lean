@@ -17,14 +17,25 @@ Uncolor all edges
 Prove that a and b are now free on all interior vertices
 -/
 
-variable (a b : Color c) (x : Vertex n)
+variable (x : Vertex n)
 
 -- Takes an existing path, extends it using a color d
-def extendPath (d : Color c) (P : List (Vertex n)) (h : P ≠ []) :
+def extendPath (a b : Color c)
+  (P : List (Vertex n)) (h1 : P ≠ []) (h2 : P.Nodup) :
   List (Vertex n) :=
-  match findNborWithColor C (P.getLast h) d with
+  match hz : findNborWithColor C (P.head h1) a with
   | none => P
-  | some z => z :: P
+  -- if z is already a member of the path, we made a cycle
+  | some z => if h : z ∈ P then P else
+    have : (z :: P).Nodup := by
+      apply List.nodup_cons.mpr ⟨_, by assumption⟩
+      assumption
+    extendPath b a (z :: P) (List.cons_ne_nil z P) this
+termination_by (n + 1) - P.length
+decreasing_by
+  apply Nat.sub_succ_lt_self
+  grw [List.Nodup.length_le_card h2]
+  simp [Fintype.card_fin]
 
 -- Maximal path: start at x extend using a, start at x extend using b, then join
 

@@ -173,4 +173,47 @@ theorem pop_back {α : Type} (A : Array α) (h : A ≠ #[]) (h' : A.size > 1)
   · simpa
   · exact Nat.sub_one_sub_lt_of_lt h'
 
+theorem middle_of_ne_head_getLast {α : Type} {l : List α} {a : α}
+  (h1 : l ≠ []) (h2 : a ∈ l)
+  (h3 : a ≠ l.head h1) (h4 : a ≠ l.getLast h1) :
+  ∃ xs ys, xs ≠ [] ∧ ys ≠ [] ∧ xs ++ (a :: ys) = l := by
+  apply List.getElem_of_mem at h2
+  rcases h2 with ⟨i, h, hi⟩
+  use l.take i, l.drop (i + 1)
+  simp_all only [ne_eq, List.take_eq_nil_iff, or_false,
+  List.drop_eq_nil_iff, not_le]
+  subst hi
+  rw [List.head_eq_getElem] at h3
+  rw [List.getLast_eq_getElem] at h4
+  repeat any_goals apply And.intro
+  · contrapose! h3
+    simp_rw [h3]
+  · contrapose! h4
+    have : i = l.length - 1 := by
+      apply Nat.eq_sub_of_add_eq
+      linarith
+    simp_rw [this]
+  · simp only [List.getElem_cons_drop, List.take_append_drop]
+
+theorem tail_nodup_of_nodup {α : Type} {l : List α} (h : l.Nodup) : l.tail.Nodup :=
+  List.Nodup.sublist (List.IsSuffix.sublist (List.tail_suffix l)) h
+
+theorem prev_cons_cons_of_ne_ne {α : Type} [DecidableEq α] {l : List α}
+  {x y z : α} (h1 : z ∈ x :: y :: l) (h2 : z ≠ x) (h3 : z ≠ y) :
+  List.prev (x :: y :: l) z h1 =
+  List.prev (y :: l) z (List.mem_of_ne_of_mem h2 h1) := by
+  unfold List.prev
+  have : z ∈ l := by
+    simp_all only [List.mem_cons, false_or, ne_eq]
+  have := List.exists_cons_of_ne_nil (List.ne_nil_of_mem this)
+  rcases this with ⟨b, l', h⟩
+  subst h
+  simp_all only [ne_eq, List.mem_cons, ↓reduceDIte, ↓reduceIte]
+  split
+  · apply List.prev_cons_cons_of_ne'
+    repeat assumption
+  · apply List.prev_ne_cons_cons
+    repeat assumption
+
+
 end Aux

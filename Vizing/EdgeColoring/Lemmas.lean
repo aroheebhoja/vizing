@@ -145,4 +145,11 @@ theorem color_symm (v₁ v₂ : Vertex n) :
   simp only [color]
   exact C.symmAx v₁ v₂
 
+theorem not_exists_of_freeColor {u : Vertex n} {a : Color c}
+  (h : a ∈ freeColorsOn C u) :
+  ¬∃ v, color C (u, v) = a := by
+
+
+  sorry
+
 end EdgeColoring

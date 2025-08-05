@@ -168,15 +168,25 @@ variable
   (hcolor : alternatesColor C P a b)
 
 theorem extendPath_nonemptyAx :
-  extendPath C P hne hx hfree hnodup ha hb hneq hcolor ≠ [] := by sorry
+  extendPath C P hne hx hfree hnodup ha hb hneq hcolor ≠ [] := by
+  fun_induction extendPath C P hne hx hfree hnodup ha hb hneq hcolor <;> simp_all
 
 theorem extendPath_firstElemAx :
   (extendPath C P hne hx hfree hnodup ha hb hneq hcolor)[0]'(by
     apply List.length_pos_iff.mpr;
-    exact extendPath_nonemptyAx C P hne hx hfree hnodup ha hb hneq hcolor) = x := by sorry
+    exact extendPath_nonemptyAx C P hne hx hfree hnodup ha hb hneq hcolor) = x := by
+    fun_induction extendPath C P hne hx hfree hnodup ha hb hneq hcolor <;> unfold extendPath
+    · rename_i h
+      simp_rw [h]
+      assumption
+    · rename_i h _ _ _ ih
+      simp_rw [h]
+      assumption
 
 theorem extendPath_nodupAx :
-  (extendPath C P hne hx hfree hnodup ha hb hneq hcolor).Nodup := by sorry
+  (extendPath C P hne hx hfree hnodup ha hb hneq hcolor).Nodup := by
+  fun_induction extendPath C P hne hx hfree hnodup ha hb hneq hcolor <;> simp_all
 
 theorem extendPath_colorAx :
-  alternatesColor C (extendPath C P hne hx hfree hnodup ha hb hneq hcolor) a b := by sorry
+  alternatesColor C (extendPath C P hne hx hfree hnodup ha hb hneq hcolor) a b := by
+  fun_induction extendPath C P hne hx hfree hnodup ha hb hneq hcolor <;> simp_all

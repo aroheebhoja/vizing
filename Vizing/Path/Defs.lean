@@ -110,15 +110,23 @@ theorem nextVertex_not_mem
     simp_rw [← hz1, hi, List.getLast_eq_getElem, self_loop_uncolored] at this
     simp at this
 
+include ha hb hneq in
 def extendPath (a b : Color c) (P : List (Vertex n)) (hne : P ≠ [])
-  (hnodup : P.Nodup) (hcolor : alternatesColor C P a b) : List (Vertex n) :=
+  (x : Vertex n)
+  (hx : P[0]'(by exact List.length_pos_iff.mpr hne) = x)
+  (hfree : b ∈ freeColorsOn C x)
+  (hnodup : P.Nodup)
+  (ha : a.isSome)
+  (hb : b.isSome)
+  (hneq : a ≠ b)
+  (hcolor : alternatesColor C P a b) : List (Vertex n) :=
   match Option.attach (nextVertex C P a b hne) with
   | none => P
   | some ⟨z, h⟩ =>
     have hnodup' : (P.concat z).Nodup := by
       apply List.Nodup.concat ?_ hnodup
-      stop
-      have := nextVertex_not_mem C P a b hne hnodup (by exact Option.isSome_of_mem h)
+      have := nextVertex_not_mem C P a b hne x hx hfree ha hb hneq hnodup
+        (by exact Option.isSome_of_mem h) hcolor
       simp_all only [Option.get_some, not_false_eq_true]
     have hcolor' : alternatesColor C (P.concat z) a b := by
       rw [alternatesColor]
@@ -129,7 +137,12 @@ def extendPath (a b : Color c) (P : List (Vertex n)) (hne : P ≠ [])
         apply List.find?_some at h
         simp at h
         rwa [next]
-    extendPath a b (P.concat z) (by simp) hnodup' hcolor'
+    have hx' : (P.concat z)[0]'(by simp) = x := by
+      simp_rw [← hx, List.concat_eq_append, List.getElem_append]
+      split
+      · rfl
+      · rename_i hc; simp at hc; contradiction
+    extendPath a b (P.concat z) (by simp) x hx' hfree hnodup' ha hb hneq hcolor'
   termination_by (n + 1) - P.length
   decreasing_by
     simp only [List.concat_eq_append, List.length_append,

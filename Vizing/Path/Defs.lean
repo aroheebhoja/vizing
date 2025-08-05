@@ -105,16 +105,10 @@ theorem nextVertex_not_mem
         rw [List.getLast_eq_getElem, List.Nodup.getElem_inj_iff hnodup] at this
         omega
     -- Case 3: z is the last element
-  · sorry
-
-  -- rcases next_eq_a_or_b a b P with hnext | hnext
-  -- -- Next color is a
-  -- rw [hnext] at hz1
-  -- sorry
-
-
-  -- -- Next color is b
-  -- sorry
+  · have : (next a b P).isSome := by
+      rcases next_eq_a_or_b a b P with hnext | hnext <;> rwa [hnext]
+    simp_rw [← hz1, hi, List.getLast_eq_getElem, self_loop_uncolored] at this
+    simp at this
 
 def extendPath (a b : Color c) (P : List (Vertex n)) (hne : P ≠ [])
   (hnodup : P.Nodup) (hcolor : alternatesColor C P a b) : List (Vertex n) :=

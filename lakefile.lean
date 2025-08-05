@@ -4,7 +4,9 @@ open Lake DSL
 package «vizing» where
   -- Settings applied to both builds and interactive editing
   leanOptions := #[
-    ⟨`pp.unicode.fun, true⟩ -- pretty-prints `fun a ↦ b`
+    ⟨`pp.unicode.fun, true⟩, -- pretty-prints `fun a ↦ b`
+    ⟨`linter.dupNamespace, false⟩,
+    ⟨`push_neg.use_distrib, true⟩
   ]
   -- add any additional package configuration options here
 

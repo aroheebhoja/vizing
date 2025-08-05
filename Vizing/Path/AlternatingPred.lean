@@ -1,9 +1,5 @@
 import Vizing.EdgeColoring
 
-set_option linter.dupNamespace false
-set_option push_neg.use_distrib true
-set_option maxHeartbeats 10000000
-
 namespace Path
 open Graph
 open EdgeColoring

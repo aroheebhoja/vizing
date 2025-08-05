@@ -1,9 +1,5 @@
 import Vizing.Path.AlternatingPred
 
-set_option linter.dupNamespace false
-set_option push_neg.use_distrib true
-set_option maxHeartbeats 10000000
-
 namespace Path
 open Graph
 open EdgeColoring
@@ -151,8 +147,6 @@ def extendPath {a b : Color c} {x : Vertex n}
     apply Nat.sub_succ_lt_self
     grw [List.Nodup.length_le_card hnodup]
     simp
-
-#check extendPath
 
 variable
   (P : List (Vertex n))

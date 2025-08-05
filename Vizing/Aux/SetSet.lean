@@ -1,8 +1,5 @@
 import Mathlib.Tactic
 
-set_option linter.dupNamespace false
-set_option push_neg.use_distrib true
-
 namespace Aux
 
 /-

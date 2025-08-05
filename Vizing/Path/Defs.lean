@@ -1,27 +1,11 @@
 import Vizing.Path.Extend
 
-set_option linter.dupNamespace false
-set_option push_neg.use_distrib true
-set_option maxHeartbeats 10000000
-
 namespace Path
 open Graph
 open EdgeColoring
 open Aux
 
 variable {n c : Nat} {G : Graph n} (C : EdgeColoring c G)
-
-/-
-(P : List (Vertex n)) (a b : Color c) (hne : P ≠ [])
-  (x : Vertex n)
-  (hx : P[0]'(by exact List.length_pos_iff.mpr hne) = x)
-  (hfree : b ∈ freeColorsOn C x)
-  (hnodup : P.Nodup)
-  (ha : a.isSome)
-  (hb : b.isSome)
-  (hneq : a ≠ b)
-
--/
 
 structure Path (a b : Color c) (x : Vertex n) where
   val : List (Vertex n)
@@ -55,3 +39,10 @@ def maximalPath : Path C a b x where
   firstElemAx := by simp [mkMaxPath, singletonPath, extendPath_firstElemAx]
   nodupAx := by simp [mkMaxPath, singletonPath, extendPath_nodupAx]
   colorAx := by simp [mkMaxPath, singletonPath, extendPath_colorAx]
+
+/-
+TODO: State and prove maximality
+
+Maximal path is maximal: if last edge is colored a,
+then b is free on last vertex, and vice versa
+-/

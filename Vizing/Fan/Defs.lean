@@ -1,8 +1,5 @@
 import Vizing.EdgeColoring
 
-set_option linter.dupNamespace false
-set_option push_neg.use_distrib true
-
 namespace Fan
 open Graph
 open EdgeColoring

@@ -3,8 +3,6 @@ import Mathlib.Data.Finset.Card
 import Vizing.Graph
 import Vizing.Aux
 
-set_option linter.dupNamespace false
-
 namespace EdgeColoring
 open Graph
 open Aux

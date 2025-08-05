@@ -1,9 +1,6 @@
 import Vizing.Graph
 import Vizing.EdgeColoring.Lemmas
 
-set_option linter.dupNamespace false
-set_option push_neg.use_distrib true
-
 namespace EdgeColoring
 open Graph
 open Aux

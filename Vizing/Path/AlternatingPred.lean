@@ -29,17 +29,43 @@ theorem next_eq_a_or_b {V C : Type*} (a b : C) (L : List V) :
   specialize ih b a
   tauto
 
-theorem last_b_of_next_a {V C : Type*} (p : V → V → C) (a b : C) (L : List V) (hne : L ≠ [])
+mutual
+theorem last_b_of_next_a {V C : Type*} (p : V → V → C) (a b : C) (L : List V) (hlen : L.length > 1)
+  (h : alternates p a b L)
   (hnext : next a b L = a) : p
-    (L[L.length - 2]'(Nat.sub_lt (List.length_pos_iff.mpr hne) (by omega)))
-    (L[L.length - 1]'(Nat.sub_lt (List.length_pos_iff.mpr hne) (by omega))) = b := by
-    sorry
+    (L[L.length - 2]'(by apply Nat.sub_lt <;> omega))
+    (L[L.length - 1]'(by apply Nat.sub_lt <;> omega)) = b := by
+    fun_cases alternates
+    any_goals contradiction
+    rename_i v₁ v₂ vs
+    rw [next] at hnext
+    by_cases hvs : vs = []
+    · subst hvs
+      simp_all!
+    · apply @last_a_of_next_b _ _ p _ _ _ (by simp; exact List.length_pos_iff.mpr hvs) at hnext
+      simp_rw [List.getElem_cons] at ⊢ hnext
+      · simp_all! +arith
+      · rw [alternates] at h
+        exact h.right
 
-theorem last_a_of_next_b {V C : Type*} (p : V → V → C) (a b : C) (L : List V) (hne : L ≠ [])
+theorem last_a_of_next_b {V C : Type*} (p : V → V → C) (a b : C) (L : List V) (hlen : L.length > 1)
+  (h : alternates p a b L)
   (hnext : next a b L = b) : p
-    (L[L.length - 2]'(Nat.sub_lt (List.length_pos_iff.mpr hne) (by omega)))
-    (L[L.length - 1]'(Nat.sub_lt (List.length_pos_iff.mpr hne) (by omega))) = a := by
-    sorry
+    (L[L.length - 2]'(by apply Nat.sub_lt <;> omega))
+    (L[L.length - 1]'(by apply Nat.sub_lt <;> omega)) = a := by
+    fun_cases alternates
+    any_goals contradiction
+    rename_i v₁ v₂ vs
+    rw [next] at hnext
+    by_cases hvs : vs = []
+    subst hvs
+    simp_all!
+    apply @last_b_of_next_a _ _ p _ _ _ (by simp; exact List.length_pos_iff.mpr hvs) at hnext
+    simp_rw [List.getElem_cons] at ⊢ hnext
+    · simp_all! +arith
+    · rw [alternates] at h
+      exact h.right
+end
 
 theorem alternates_concat {V C : Type*} {p : V → V → C} {a b : C} {L : List V} (w : V)
     (Lne : L ≠ [])
@@ -114,4 +140,3 @@ theorem middle_spec {V C : Type*} {p : V → V → C} {a b : C} {L : List V}
     have : i - 1 + 1 = i := by omega
     simp_rw [this] at ih
     tauto
-

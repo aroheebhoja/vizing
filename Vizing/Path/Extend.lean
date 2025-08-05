@@ -19,7 +19,6 @@ variable {c n : Nat} {G : Graph n} (C : EdgeColoring c G)
   (hb : b.isSome)
   (hneq : a ≠ b)
 
-
 def alternatesColor :=
   alternates (fun v₁ v₂ ↦ color C (v₁, v₂)) a b P
 

@@ -157,39 +157,9 @@ def mkMaxFan {x y : Vertex n} (h : present G (x, y)) : Array (Vertex n) :=
   add C x y (singletonFan C h).val
   ((nbhd G x).val.erase y) (singletonFan C h).nonemptyAx
 
-theorem mkMaxFan_nborsAx (hpres : present G (x, y)) :
-  (mkMaxFan C hpres).toList ⊆ (nbhd G x).val := by
-  simp [mkMaxFan, singletonFan]
-  simp [present] at hpres
-  apply add_nborsAx
-  · simp
-    exact hpres.right
-  · exact List.erase_subset
-
 theorem mkMaxFan_nonemptyAx (hpres : present G (x, y)) :
   mkMaxFan C hpres ≠ #[] := by
   simp [mkMaxFan, singletonFan, add_nonemptyAx]
-
-theorem mkMaxFan_firstElemAx (hpres : present G (x, y)) :
-  (mkMaxFan C hpres)[0]'(by
-  exact Array.size_pos_iff.mpr (mkMaxFan_nonemptyAx C hpres))
-  = y := by
-  simp [mkMaxFan, singletonFan, add_firstElemAx]
-
-theorem mkMaxFan_colorAx (hpres : present G (x, y)) :
-  colorAx C (mkMaxFan C hpres) x := by
-  simp [mkMaxFan, (singletonFan C hpres).colorAx, add_colorAx]
-
-theorem mkMaxFan_nodupAx (hpres : present G (x, y)) :
-  (mkMaxFan C hpres).toList.Nodup := by
-  simp [mkMaxFan, singletonFan]
-  apply add_nodupAx
-  · apply List.Nodup.erase y
-    exact (nbhd G x).nodupAx
-  · exact List.nodup_singleton y
-  · apply List.disjoint_singleton.mpr
-    apply List.Nodup.not_mem_erase
-    exact (nbhd G x).nodupAx
 
 theorem mkMaxFan_maximal (hpres : present G (x, y)) :
   ∀ z ∈ ((nbhd G x).val.erase y), z ∉ mkMaxFan C hpres →
@@ -201,10 +171,24 @@ theorem mkMaxFan_maximal (hpres : present G (x, y)) :
 
 def maximalFan {x y : Vertex n} (h : present G (x, y)) : Fan C x y where
   val := mkMaxFan C h
-  nborsAx := mkMaxFan_nborsAx C h
-  firstElemAx := mkMaxFan_firstElemAx C h
+  nborsAx := by
+    simp [mkMaxFan, singletonFan]
+    simp [present] at h
+    apply add_nborsAx
+    · simp
+      exact h.right
+    · exact List.erase_subset
   nonemptyAx := mkMaxFan_nonemptyAx C h
-  colorAx := mkMaxFan_colorAx C h
-  nodupAx := mkMaxFan_nodupAx C h
+  firstElemAx := by simp [mkMaxFan, singletonFan, add_firstElemAx]
+  colorAx := by simp [mkMaxFan, (singletonFan C h).colorAx, add_colorAx]
+  nodupAx := by
+    simp [mkMaxFan, singletonFan]
+    apply add_nodupAx
+    · apply List.Nodup.erase y
+      exact (nbhd G x).nodupAx
+    · exact List.nodup_singleton y
+    · apply List.disjoint_singleton.mpr
+      apply List.Nodup.not_mem_erase
+      exact (nbhd G x).nodupAx
 
 end Fan

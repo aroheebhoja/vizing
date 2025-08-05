@@ -10,6 +10,9 @@ open EdgeColoring
 open Aux
 
 variable {c n : Nat} {G : Graph n} (C : EdgeColoring c G)
+
+section
+variable
   (P : List (Vertex n)) (a b : Color c) (hne : P ≠ [])
   (x : Vertex n)
   (hx : P[0]'(by exact List.length_pos_iff.mpr hne) = x)
@@ -31,9 +34,8 @@ def lastColor_eq_b_of_nextColor_eq_a :=
 def lastColor_eq_a_of_nextColor_eq_b :=
   last_a_of_next_b (fun v₁ v₂ ↦ color C (v₁, v₂)) a b P hne
 
-include hx hfree ha hb hneq in
+include hx hfree ha hb hneq hnodup in
 theorem nextVertex_not_mem
-  (hnodup : P.Nodup)
   (h : (nextVertex C P a b hne).isSome) (hcolor : alternatesColor C P a b) :
   (nextVertex C P a b hne).get h ∉ P := by
   intro hc
@@ -108,23 +110,21 @@ theorem nextVertex_not_mem
       rcases next_eq_a_or_b a b P with hnext | hnext <;> rwa [hnext]
     simp_rw [← hz1, hi, List.getLast_eq_getElem, self_loop_uncolored] at this
     simp at this
+end
 
-include ha hb hneq in
-def extendPath (a b : Color c) (P : List (Vertex n)) (hne : P ≠ [])
-  (x : Vertex n)
+def extendPath {a b : Color c} {x : Vertex n}
+  (P : List (Vertex n)) (hne : P ≠ [])
   (hx : P[0]'(by exact List.length_pos_iff.mpr hne) = x)
   (hfree : b ∈ freeColorsOn C x)
   (hnodup : P.Nodup)
-  (ha : a.isSome)
-  (hb : b.isSome)
-  (hneq : a ≠ b)
+  (ha : a.isSome) (hb : b.isSome) (hneq : a ≠ b)
   (hcolor : alternatesColor C P a b) : List (Vertex n) :=
   match Option.attach (nextVertex C P a b hne) with
   | none => P
   | some ⟨z, h⟩ =>
     have hnodup' : (P.concat z).Nodup := by
       apply List.Nodup.concat ?_ hnodup
-      have := nextVertex_not_mem C P a b hne x hx hfree ha hb hneq hnodup
+      have := nextVertex_not_mem C P a b hne x hx hfree hnodup ha hb hneq
         (by exact Option.isSome_of_mem h) hcolor
       simp_all only [Option.get_some, not_false_eq_true]
     have hcolor' : alternatesColor C (P.concat z) a b := by
@@ -141,7 +141,7 @@ def extendPath (a b : Color c) (P : List (Vertex n)) (hne : P ≠ [])
       split
       · rfl
       · rename_i hc; simp at hc; contradiction
-    extendPath a b (P.concat z) (by simp) x hx' hfree hnodup' ha hb hneq hcolor'
+    extendPath (P.concat z) (by simp) hx' hfree hnodup' ha hb hneq hcolor'
   termination_by (n + 1) - P.length
   decreasing_by
     simp only [List.concat_eq_append, List.length_append,
@@ -149,3 +149,32 @@ def extendPath (a b : Color c) (P : List (Vertex n)) (hne : P ≠ [])
     apply Nat.sub_succ_lt_self
     grw [List.Nodup.length_le_card hnodup]
     simp
+
+#check extendPath
+
+variable
+  (P : List (Vertex n))
+  {a b : Color c}
+  {x : Vertex n}
+  (hne : P ≠ [])
+  (hx : P[0]'(by exact List.length_pos_iff.mpr hne) = x)
+  (hfree : b ∈ freeColorsOn C x)
+  (hnodup : P.Nodup)
+  (ha : a.isSome)
+  (hb : b.isSome)
+  (hneq : a ≠ b)
+  (hcolor : alternatesColor C P a b)
+
+theorem extendPath_nonemptyAx :
+  extendPath C P hne hx hfree hnodup ha hb hneq hcolor ≠ [] := by sorry
+
+theorem extendPath_firstElemAx :
+  (extendPath C P hne hx hfree hnodup ha hb hneq hcolor)[0]'(by
+    apply List.length_pos_iff.mpr;
+    exact extendPath_nonemptyAx C P hne hx hfree hnodup ha hb hneq hcolor) = x := by sorry
+
+theorem extendPath_nodupAx :
+  (extendPath C P hne hx hfree hnodup ha hb hneq hcolor).Nodup := by sorry
+
+theorem extendPath_colorAx :
+  alternatesColor C (extendPath C P hne hx hfree hnodup ha hb hneq hcolor) a b := by sorry

@@ -52,18 +52,12 @@ def setEdge :=
   set_set n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
     (by exact h.left) (by exact h.right) a e.2 e.1
 
-theorem edge_not_self_loop (hpres : present G e) : e.1 ≠ e.2 := by
-  by_contra h
-  simp [present, nbhd] at hpres
-  simp_rw [← Fin.getElem_fin, h] at hpres
-  exact G.noSelfLoopsAx e.2 hpres.left
-
 theorem setEdge_symm (hpres : present G e) :
   setEdge C e a = setEdge C (e.2, e.1) a := by
   simp [setEdge]
   apply set_set_comm
   right
-  exact edge_not_self_loop e hpres
+  exact edge_not_self_loop hpres
 
 theorem setEdge_sizeAx1 : (setEdge C e a).size = n := by
   have h := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
@@ -85,7 +79,7 @@ theorem setEdge_spec1 (hpres : present G e) :
     have h1 := set_set_spec2 n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2 e.1 e.2 (by tauto)
     have h2 := set_set_spec1 n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
       hsize.left hsize.right a e.2 e.1 e.1 e.2 (by
-      right; exact edge_not_self_loop e hpres)
+      right; exact edge_not_self_loop hpres)
     rw [h1] at h2
     exact Eq.symm h2
 
@@ -139,7 +133,7 @@ theorem setEdge_spec5 (hpres : present G e) :
     have hsize := set_set_preserves_size n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2
     have h1 := count_set_set n C.val C.sizeAx1 C.sizeAx2 a b e.1 e.2
     have h2 := count_set_set' n (set_set n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2)
-      hsize.left hsize.right a b e.2 e.1 (by exact Ne.symm (edge_not_self_loop e hpres))
+      hsize.left hsize.right a b e.2 e.1 (by exact Ne.symm (edge_not_self_loop hpres))
     have h3 := set_set_spec2 n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2 e.1 e.2 (by tauto)
     rw [h1] at h2
     simp [setEdge, Fin.getElem_fin] at ⊢ h2
@@ -175,7 +169,7 @@ theorem setEdge_validAx (hpres : present G e)
       = 1 := by
   have hvalid := edgeColorValid_spec C e a hval
   intro u v huv
-  have := edge_not_self_loop e hpres
+  have := edge_not_self_loop hpres
   by_cases h : e.1 ≠ u ∧ e.2 ≠ u
   · have h1 := setEdge_spec3 C e a u v (by tauto)
     have h2 := setEdge_spec4 C e a u h

@@ -65,7 +65,7 @@ theorem setEdgeColor_freeOn (e : Edge n) (hpres : present G e) (a : Color c)
   simp [edgeColorValid] at hvalid
   simp_all [color, freeColorsOn, incidentColorsOn]
   have := C.validAx
-  have hloop := edge_not_self_loop e hpres
+  have hloop := edge_not_self_loop hpres
   have aux := set_set_spec3 n C.val C.sizeAx1 C.sizeAx2 a e.1 e.2 e.2 hloop
   repeat any_goals apply And.intro
   any_goals

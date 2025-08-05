@@ -148,8 +148,27 @@ theorem color_symm (v₁ v₂ : Vertex n) :
 theorem not_exists_of_freeColor {u : Vertex n} {a : Color c}
   (h : a ∈ freeColorsOn C u) :
   ¬∃ v, color C (u, v) = a := by
+  simp [freeColorsOn, incidentColorsOn] at h
+  rcases h with ⟨h1, h2⟩
+  simp [color]
+  simp [allColors] at h1
+  rcases h1 with ⟨_, heq⟩
+  subst heq
+  simp at h2
+  intro x
+  contrapose! h2
+  exact Array.mem_of_getElem h2
 
+theorem edge_not_self_loop {e : Edge n} (hpres : present G e) : e.1 ≠ e.2 := by
+  by_contra h
+  simp [present, nbhd] at hpres
+  simp_rw [← Fin.getElem_fin, h] at hpres
+  exact G.noSelfLoopsAx e.2 hpres.left
 
-  sorry
+theorem self_loop_uncolored (u : Vertex n) :
+  color C (u, u) = none := by
+  by_contra hc
+  have := edge_not_self_loop (C.representsEdgesAx (u, u) (Option.isSome_iff_ne_none.mpr hc))
+  simp at this
 
 end EdgeColoring

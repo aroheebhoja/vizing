@@ -91,14 +91,14 @@ theorem nextVertex_not_mem
         rcases color_unique C _ _ _ hz1 with this | this <;> simp_all
         rw [List.getLast_eq_getElem, List.Nodup.getElem_inj_iff hnodup] at this
         have := lastColor_eq_b_of_nextColor_eq_a C P a b hne hnext
-        simp_all! +arith
+        simp_all
     · rcases middle_spec hcolor i hi with ⟨_, hc⟩ | ⟨hc, _⟩
       · rw [← hz1, color_symm] at hb
         rw [← hc, color_symm] at hz1
         rcases color_unique C _ _ _ hz1 with this | this <;> simp_all
         rw [List.getLast_eq_getElem, List.Nodup.getElem_inj_iff hnodup] at this
         have := lastColor_eq_a_of_nextColor_eq_b C P a b hne hnext
-        simp_all! +arith
+        simp_all
       · rw [← hz1, color_symm] at hb
         rw [← hc, color_symm _ _ P[i], color_symm _ _ P[i]] at hz1
         rcases color_unique C _ _ _ hz1 with this | this <;> simp_all

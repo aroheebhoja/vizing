@@ -34,6 +34,15 @@ theorem color_invariant (e : Edge n) (a : Color c)
   simp_rw [ne_eq, Prod.eq_iff_fst_eq_snd_eq] at h
   tauto
 
+
+theorem setEdgeColor_symm {e : Edge n} {a : Color c}
+  {hpres : present G e} {hvalid : edgeColorValid C e a} :
+    setEdgeColor C e a hpres hvalid = setEdgeColor C (e.2, e.1) a
+    (by simpa [present, And.comm] using hpres)
+    (by simpa [edgeColorValid, And.comm] using hvalid) := by
+  simp [setEdgeColor]
+  rwa [setEdge_symm]
+
 theorem newColor_not_eq_oldColor (e : Edge n) (a : Color c)
   (hvalid : edgeColorValid C e a) (hcolor : (color C e).isSome) :
   a ≠ color C e := by
@@ -56,6 +65,54 @@ theorem newColor_not_eq_oldColor (e : Edge n) (a : Color c)
     unfold color at hc aux2
     rw [hc] at h
     contradiction
+
+theorem color_incident_if {e : Edge n} {a d : Color c} {u : Vertex n}
+  {hpres : present G e} {hvalid : edgeColorValid C e a}
+  (h : d ∈ incidentColorsOn C u) (h2 : d ≠ color C e)
+  : d ∈ incidentColorsOn (setEdgeColor C e a hpres hvalid) u := by
+  by_cases h : u = e.1 ∨ u = e.2
+  wlog h : u = e.1
+  specialize @this _ _ _ C (e.2, e.1) a d u (by simpa [present, And.comm] using hpres)
+    (by simpa [edgeColorValid, And.comm] using hvalid) (by assumption) (by rwa [color_symm])
+    (by simp; tauto) (by simp_all [edge_not_self_loop hpres])
+  rw [setEdgeColor_symm] at this; simpa using this
+  subst h
+  simp_all [incidentColorsOn, setEdgeColor]
+  rcases h with ⟨h3, h4⟩
+  rcases Array.getElem_of_mem h3 with ⟨i, h5, h6⟩
+  simp [edgeColorValid, freeColorsOn, incidentColorsOn] at hvalid
+  simp [color] at h2
+  subst h6
+  simp_all
+  have hi' : i < n := by
+    have := C.sizeAx2 ↑e.1
+    simp [Fin.getElem_fin] at this; omega
+  have aux1 : i ≠ ↑e.2 := by
+    by_contra hc; subst hc; apply h2; rfl
+  have aux2 : i ≠ e.1 := by
+    by_contra hc; subst hc
+    have := self_loop_uncolored C ↑e.1
+    simp [color] at this
+    simp [this] at h4
+  have aux3 := edge_not_self_loop hpres
+  apply @Array.mem_of_getElem _ _ i ?_
+  rw [Eq.comm]
+  apply setEdge_spec3 C e a e.1 ⟨i, (by assumption)⟩ ?_
+  · simp; constructor; exact Fin.ne_of_val_ne (by tauto); left; tauto
+  · have := setEdge_sizeAx2 C e a ↑e.1
+    simp_all
+  rw [← incidentColors_invariant C e a hpres hvalid] <;> tauto
+
+theorem color_free_if {e : Edge n} {a d : Color c} {u : Vertex n}
+  {hpres : present G e} {hvalid : edgeColorValid C e a}
+  (h : d ∈ freeColorsOn C u) (h2 : a ≠ d)
+  : d ∈ freeColorsOn (setEdgeColor C e a hpres hvalid) u := by
+  simp_all [freeColorsOn]
+  rcases h with ⟨_, h⟩
+  contrapose! h
+
+
+  sorry
 
 theorem setEdgeColor_freeOn (e : Edge n) (hpres : present G e) (a : Color c)
   (hvalid : edgeColorValid C e a) (hcolor : (color C e).isSome) :

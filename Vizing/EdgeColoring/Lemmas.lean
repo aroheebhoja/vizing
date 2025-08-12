@@ -171,4 +171,9 @@ theorem self_loop_uncolored (u : Vertex n) :
   have := edge_not_self_loop (C.representsEdgesAx (u, u) (Option.isSome_iff_ne_none.mpr hc))
   simp at this
 
+theorem mem_allColors_if_isSome {a : Color c} (ha : a.isSome) : a ∈ allColors := by
+  simp [allColors]
+  rcases Option.isSome_iff_exists.mp ha with ⟨b, hb⟩
+  use b; exact Eq.symm hb
+
 end EdgeColoring

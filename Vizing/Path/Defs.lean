@@ -46,3 +46,10 @@ TODO: State and prove maximality
 Maximal path is maximal: if last edge is colored a,
 then b is free on last vertex, and vice versa
 -/
+
+theorem maximalPath_isMaximal :
+  next a b (maximalPath C ha hb hne hfree).val ∈
+  freeColorsOn C ((maximalPath C ha hb hne hfree).val.getLast
+    (maximalPath C ha hb hne hfree).nonemptyAx) := by
+  simp [maximalPath, mkMaxPath]
+  apply extendPath_maximal

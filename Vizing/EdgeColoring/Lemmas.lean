@@ -176,4 +176,11 @@ theorem mem_allColors_if_isSome {a : Color c} (ha : a.isSome) : a ∈ allColors 
   rcases Option.isSome_iff_exists.mp ha with ⟨b, hb⟩
   use b; exact Eq.symm hb
 
+theorem isSome_if_mem_freeColorsOn {a : Color c} (v : Vertex n) (h : a ∈ freeColorsOn C v)
+  : a.isSome := by
+  simp [freeColorsOn, allColors] at h
+  rcases h with ⟨⟨_, h⟩, _⟩
+  rw [← h]
+  rfl
+
 end EdgeColoring

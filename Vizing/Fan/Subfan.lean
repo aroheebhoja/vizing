@@ -52,30 +52,30 @@ theorem maximalFan_spec : ∀ (F : Fan C x y),
     simp_all
     exact Nat.le_of_eq (Eq.symm heq)
 
-def findSubfanWithColor (F : Fan C x y) (a : Color c) : Fan C x y where
-  val := takeUntil (a ∉ freeColorsOn C ·) F.val
-  nborsAx := by
-    intro v hv
-    apply F.nborsAx
-    apply List.IsPrefix.mem hv
-    rw [← List.isPrefixOf_iff_prefix, Array.isPrefixOf_toList]
-    exact takeUntil_prefix (a ∉ freeColorsOn C ·) F.val
-  nonemptyAx := by
-    simp [takeUntil]
-    exact F.nonemptyAx
-  firstElemAx := by
-    simp [takeUntil]
-    exact F.firstElemAx
-  colorAx := by
-    simp [colorAx]
-    apply List.Chain'.prefix (l := F.val.toList)
-    · exact F.colorAx
-    · simp [← List.isPrefixOf_iff_prefix, Array.isPrefixOf_toList]
-      apply takeUntil_prefix
-  nodupAx := by
-    apply List.Sublist.nodup ?_ F.nodupAx
-    apply List.IsPrefix.sublist
-    rw [← List.isPrefixOf_iff_prefix, Array.isPrefixOf_toList]
-    exact takeUntil_prefix (a ∉ freeColorsOn C ·) F.val
+-- def findSubfanWithColor (F : Fan C x y) (a : Color c) : Fan C x y where
+--   val := takeUntil (a ∉ freeColorsOn C ·) F.val
+--   nborsAx := by
+--     intro v hv
+--     apply F.nborsAx
+--     apply List.IsPrefix.mem hv
+--     rw [← List.isPrefixOf_iff_prefix, Array.isPrefixOf_toList]
+--     exact takeUntil_prefix (a ∉ freeColorsOn C ·) F.val
+--   nonemptyAx := by
+--     simp [takeUntil]
+--     exact F.nonemptyAx
+--   firstElemAx := by
+--     simp [takeUntil]
+--     exact F.firstElemAx
+--   colorAx := by
+--     simp [colorAx]
+--     apply List.Chain'.prefix (l := F.val.toList)
+--     · exact F.colorAx
+--     · simp [← List.isPrefixOf_iff_prefix, Array.isPrefixOf_toList]
+--       apply takeUntil_prefix
+--   nodupAx := by
+--     apply List.Sublist.nodup ?_ F.nodupAx
+--     apply List.IsPrefix.sublist
+--     rw [← List.isPrefixOf_iff_prefix, Array.isPrefixOf_toList]
+--     exact takeUntil_prefix (a ∉ freeColorsOn C ·) F.val
 
 end Fan

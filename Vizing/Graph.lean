@@ -71,7 +71,8 @@ structure EdgeSet where
   nodupAx : val.Nodup
   noSelfLoopsAx : ∀ e ∈ val, e.1 ≠ e.2
 
-variable (E : EdgeSet G)
+section
+variable {G : Graph n} (E : EdgeSet G)
 
 def remove (e : Edge n) : EdgeSet G where
   val := E.val.removeAll [e, (e.2, e.1)]
@@ -102,6 +103,7 @@ def remove (e : Edge n) : EdgeSet G where
     intro f hf
     apply E.noSelfLoopsAx
     exact List.mem_of_mem_filter hf
+end
 
 def mkEdgeSet (G : Graph n) :=
   (List.finRange n).flatMap (fun u ↦ (nbhd G u).val.map (u, ·))

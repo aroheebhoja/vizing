@@ -190,3 +190,24 @@ def invert : EdgeColoring c G :=
       exact P.nonemptyAx
     · apply maximalPath_isMaximal
     · assumption)
+
+
+-- def pathEdges (P : Path C a b x) : EdgeSet G where
+--   val :=
+
+def pathEdges (P : List (Vertex n)) : List (Edge n) :=
+  match P with
+| [] => []
+| [_] => []
+| p₁ :: p₂ :: ps => (p₁, p₂) :: (p₂, p₁) :: pathEdges ps
+
+def isInverted_notmem (C C' : EdgeColoring c G) (P : Path C a b x) : Prop :=
+  ∀ e ∈ (toEdgeSet G).val, e ∉ pathEdges P.val → (color C e = color C' e)
+
+def isInverted_mem (C C' : EdgeColoring c G) (P : Path C a b x) : Prop :=
+  ∀ e ∈ pathEdges P.val, (color C e = a → color C' e = b) ∧ (color C e = b → color C' e = a)
+
+def isInverted (C C' : EdgeColoring c G) (P : Path C a b x) :=
+  isInverted_notmem C C' P ∧ isInverted_mem C C' P
+
+theorem invert_spec : isInverted C (invert ha hb hne hfree) (maximalPath C ha hb hne hfree) := by sorry

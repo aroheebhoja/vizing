@@ -215,5 +215,9 @@ theorem prev_cons_cons_of_ne_ne {α : Type} [DecidableEq α] {l : List α}
   · apply List.prev_ne_cons_cons
     repeat assumption
 
+theorem mem_of_mem_pop {α : Type*} {x : α} {xs : Array α} (h : x ∈ xs.pop) : x ∈ xs := by
+  rw [← Array.mem_toList_iff, Array.toList_pop] at h
+  rw [← Array.mem_toList_iff]
+  exact List.mem_of_mem_dropLast h
 
 end Aux

@@ -77,7 +77,6 @@ theorem nextVertex_not_mem
     -- Case 2: z is a middle element
   · rw [alternatesColor] at hcolor
     have hlen : P.length > 1 := by omega
-
     rcases next_eq_a_or_b a b P with hnext | hnext <;> rw [hnext] at hz1
     · rcases middle_spec hcolor i hi with ⟨hc, _⟩ | ⟨_, hc⟩
       · rw [← hz1, color_symm] at ha

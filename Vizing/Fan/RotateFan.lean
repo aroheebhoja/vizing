@@ -136,11 +136,6 @@ def rotateFan (C : EdgeColoring c G) (F : Fan C x y) (a : Color c)
     simp [mkFan]
     exact Array.size_pos_iff.mpr F.nonemptyAx
 
-theorem mem_of_mem_pop {α : Type*} {x : α} {xs : Array α} (h : x ∈ xs.pop) : x ∈ xs := by
-  rw [← Array.mem_toList_iff, Array.toList_pop] at h
-  rw [← Array.mem_toList_iff]
-  exact List.mem_of_mem_dropLast h
-
 theorem rotateFan_invariant (C : EdgeColoring c G) (F : Fan C x y) (a : Color c)
   (hvalid : edgeColorValid C (x, last F) a) :
   ∀ u v : Vertex n, ¬ (u = x ∧ v ∈ F.val ∨ v = x ∧ u ∈ F.val) →

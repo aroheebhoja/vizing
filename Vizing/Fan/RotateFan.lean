@@ -136,4 +136,58 @@ def rotateFan (C : EdgeColoring c G) (F : Fan C x y) (a : Color c)
     simp [mkFan]
     exact Array.size_pos_iff.mpr F.nonemptyAx
 
+theorem mem_of_mem_pop {α : Type*} {x : α} {xs : Array α} (h : x ∈ xs.pop) : x ∈ xs := by
+  rw [← Array.mem_toList_iff, Array.toList_pop] at h
+  rw [← Array.mem_toList_iff]
+  exact List.mem_of_mem_dropLast h
+
+theorem rotateFan_invariant (C : EdgeColoring c G) (F : Fan C x y) (a : Color c)
+  (hvalid : edgeColorValid C (x, last F) a) :
+  ∀ u v : Vertex n, ¬ (u = x ∧ v ∈ F.val ∨ v = x ∧ u ∈ F.val) →
+    color C (u, v) = color (rotateFan C F a hvalid) (u, v) := by
+  intro u v huv
+  simp at huv
+  rcases huv with ⟨h1, h2⟩
+  fun_induction rotateFan
+  rename_i C F a hvalid a' C' hsize F' hvalid' ih
+  rw [← ih]
+  · simp [C']
+    apply color_invariant
+    constructor
+    · simp only [ne_eq, Prod.mk.injEq, not_and, C']
+      intro hu; subst hu
+      contrapose! h1
+      rw [last] at h1; rw [h1]
+      simp
+    · simp only [ne_eq, Prod.mk.injEq, not_and, C']
+      intro hu; subst hu
+      contrapose! h2
+      rw [last]
+      simpa
+  · intro hu; subst hu
+    contrapose! h1
+    simp [F', mkFan] at h1
+    exact ⟨rfl, mem_of_mem_pop h1⟩
+  · intro hv; subst hv
+    contrapose! h2
+    simp [F', mkFan] at h2
+    exact ⟨rfl, mem_of_mem_pop h2⟩
+  rename_i C F a hvalid C' hsize
+  simp [C']
+  have : F.val = #[y] := by
+    have : F.val.size > 0 := by
+      apply Array.size_pos_iff.mpr
+      exact F.nonemptyAx
+    have : F.val.size = 1 := by omega
+    apply Array.size_eq_one_iff.mp at this
+    rcases this with ⟨a, ha⟩
+    have := F.firstElemAx
+    simp_all
+  simp_all [last]
+  apply color_invariant
+  simp_all
+  intro h; subst h
+  simpa using h2
+
+
 end Fan

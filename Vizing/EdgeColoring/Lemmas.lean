@@ -159,6 +159,7 @@ theorem not_exists_of_freeColor {u : Vertex n} {a : Color c}
   contrapose! h2
   exact Array.mem_of_getElem h2
 
+
 theorem edge_not_self_loop {e : Edge n} (hpres : present G e) : e.1 ≠ e.2 := by
   by_contra h
   simp [present, nbhd] at hpres
@@ -176,11 +177,36 @@ theorem mem_allColors_if_isSome {a : Color c} (ha : a.isSome) : a ∈ allColors 
   rcases Option.isSome_iff_exists.mp ha with ⟨b, hb⟩
   use b; exact Eq.symm hb
 
+theorem freeColor_of_not_exists_and_isSome {u : Vertex n} {a : Color c}
+  (h1 : a.isSome) (h2 : ¬∃ v, color C (u, v) = a) :
+  a ∈ freeColorsOn C u := by
+  simp_all [freeColorsOn, incidentColorsOn, color, Option.isSome_iff_ne_none, mem_allColors_if_isSome]
+  contrapose! h2
+  rcases Array.mem_iff_getElem.mp h2 with ⟨i, hi1, hi2⟩
+  use ⟨i, (by rwa [← Fin.getElem_fin, C.sizeAx2] at hi1)⟩
+
 theorem isSome_if_mem_freeColorsOn {a : Color c} (v : Vertex n) (h : a ∈ freeColorsOn C v)
   : a.isSome := by
   simp [freeColorsOn, allColors] at h
   rcases h with ⟨⟨_, h⟩, _⟩
   rw [← h]
   rfl
+
+theorem free_if_not_exists_nbor {x : Vertex n} {a : Color c} (ha : a.isSome)
+  (hnbor : findNborWithColor C x a = none):
+  a ∈ freeColorsOn C x := by
+  simp [freeColorsOn]
+  constructor
+  · exact mem_allColors_if_isSome ha
+  simp [findNborWithColor, color] at hnbor
+  simp [incidentColorsOn]
+  intro h
+  exfalso
+  rcases Array.getElem_of_mem h with ⟨i, h, hi⟩
+  have := C.representsEdgesAx (x, ⟨i, (by rw [← C.sizeAx2]; omega)⟩) (by simp; rwa [hi])
+  simp [present] at this
+  specialize hnbor _ this.right
+  simp at hnbor
+  contradiction
 
 end EdgeColoring

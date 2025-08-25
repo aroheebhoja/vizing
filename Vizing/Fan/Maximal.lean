@@ -188,4 +188,11 @@ def maximalFan {x y : Vertex n} (h : present G (x, y)) : Fan C x y where
       apply List.Nodup.not_mem_erase
       exact (nbhd G x).nodupAx
 
+def isMaximal {C : EdgeColoring c G} (F : Fan C x y) := ∀ z ∈ ((nbhd G x).val.erase y), z ∉ F.val →
+    color C (x, z) ∉ freeColorsOn C (last F)
+
+theorem maximalFan_isMaximal (hpres : present G (x, y)) : isMaximal (maximalFan C hpres) := by
+  simp [isMaximal, maximalFan, last]
+  apply mkMaxFan_maximal
+
 end Fan

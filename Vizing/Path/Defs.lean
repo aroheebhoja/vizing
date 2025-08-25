@@ -53,3 +53,28 @@ theorem maximalPath_isMaximal :
     (maximalPath C ha hb hne hfree).nonemptyAx) := by
   simp [maximalPath, mkMaxPath]
   apply extendPath_maximal
+
+theorem isLast_if {P : Path C a b x} {u : Vertex n}
+  (h1 : u ∈ P.val) (h2 : a ∈ freeColorsOn C u) :
+  u = P.val[P.val.length - 1]'(by
+    apply Nat.sub_one_lt;
+    apply Nat.ne_zero_iff_zero_lt.mpr;
+    exact List.length_pos_of_mem h1) := by
+  rcases List.getElem_of_mem h1 with ⟨i, h, hi⟩
+  simp_rw [← hi]
+  apply (List.Nodup.getElem_inj_iff P.nodupAx).mpr
+  by_contra
+  have : i = 0 ∨ (0 < i ∧ i < P.val.length - 1) := by omega
+  have hcolor := P.colorAx
+  rcases this with hi | hi
+  · subst hi
+    rw [alternatesColor, alternates.eq_def] at hcolor
+    split at hcolor <;> simp_all
+    rcases hcolor with ⟨hcolor, _⟩
+    apply not_exists_of_freeColor at h2
+    simp_all
+  · rw [alternatesColor] at hcolor
+    apply middle_spec at hcolor
+    specialize hcolor i hi
+    apply not_exists_of_freeColor at h2
+    simp_all [color_symm]

@@ -185,23 +185,6 @@ theorem extendPath_colorAx :
   fun_induction extendPath C P hne hx hfree hnodup ha hb hneq hcolor <;> simp_all
 
 
-theorem free_if_not_exists_nbor {x : Vertex n} {a : Color c} (ha : a.isSome)
-  (hnbor : findNborWithColor C x a = none):
-  a ∈ freeColorsOn C x := by
-  simp [freeColorsOn]
-  constructor
-  · exact mem_allColors_if_isSome ha
-  simp [findNborWithColor, color] at hnbor
-  simp [incidentColorsOn]
-  intro h
-  exfalso
-  rcases Array.getElem_of_mem h with ⟨i, h, hi⟩
-  have := C.representsEdgesAx (x, ⟨i, (by rw [← C.sizeAx2]; omega)⟩) (by simp; rwa [hi])
-  simp [present] at this
-  specialize hnbor _ this.right
-  simp at hnbor
-  contradiction
-
 theorem extendPath_maximal :
   next a b (extendPath C P hne hx hfree hnodup ha hb hneq hcolor) ∈
   freeColorsOn C ((extendPath C P hne hx hfree hnodup ha hb hneq hcolor).getLast

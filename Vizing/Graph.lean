@@ -163,4 +163,20 @@ def present := e.1 ∈ (nbhd G e.2).val ∧ e.2 ∈ (nbhd G e.1).val
 theorem present_symm : e.1 ∈ (nbhd G e.2).val ↔ e.2 ∈ (nbhd G e.1).val := by
   exact G.symmAx e.1 e.2
 
+theorem mem_edgeSet_iff_present :
+  present G e ↔ e ∈ (toEdgeSet G).val := by
+  constructor
+  · intro h
+    rw [present] at h
+    simp [toEdgeSet, mkEdgeSet]
+    use e.1, e.2, h.right
+  · intro h
+    simp [toEdgeSet, mkEdgeSet] at h
+    rcases h with ⟨u, v, h1, h2⟩
+    rw [← h2]
+    rw [present]
+    constructor
+    · rwa [nbhd, G.symmAx]
+    · assumption
+
 end Graph

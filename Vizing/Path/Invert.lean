@@ -201,6 +201,24 @@ def pathEdges (P : List (Vertex n)) : List (Edge n) :=
 | [_] => []
 | p₁ :: p₂ :: ps => (p₁, p₂) :: (p₂, p₁) :: pathEdges ps
 
+theorem not_mem_pathEdges_if_aux {e : Edge n} {P : List (Vertex n)}
+  (h : e.1 ∉ P ∨ e.2 ∉ P) :
+  e ∉ pathEdges P := by
+  rcases h with h | h
+  all_goals
+  fun_induction pathEdges P <;> simp_all
+  contrapose! h
+  rcases h with h | h <;> simp_all
+
+theorem not_mem_pathEdges_if {e : Edge n} {P : Path C a b x}
+  (h : e.1 ∉ P.val ∨ e.2 ∉ P.val) :
+  e ∉ pathEdges P.val := not_mem_pathEdges_if_aux h
+
+theorem mem_pathEdges_if {e : Edge n} {P : Path C a b x}
+  (h : e ∈ pathEdges P.val) : e.1 ∈ P.val ∧ e.2 ∈ P.val := by
+  contrapose! h
+  exact not_mem_pathEdges_if h
+
 def isInverted_notmem (C C' : EdgeColoring c G) (P : Path C a b x) : Prop :=
   ∀ e ∈ (toEdgeSet G).val, e ∉ pathEdges P.val → (color C e = color C' e)
 

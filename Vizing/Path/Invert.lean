@@ -1,4 +1,4 @@
-import Vizing.Path.Defs
+import Vizing.Path.PathEdges
 
 namespace Path
 open Graph
@@ -10,7 +10,7 @@ variable {n c : Nat} {G : Graph n} {C : EdgeColoring c G}
 
 include ha hb in
 theorem edges_present (L : List (Vertex n))
-  (colorAx : alternatesColor C L a b) : List.Chain' (fun e₁ e₂ ↦ present G (e₁, e₂)) L := by
+  (colorAx : alternatesColor C L a b) : List.Chain' (fun v₁ v₂ ↦ present G (v₁, v₂)) L := by
   rw [alternatesColor] at colorAx
   induction' L with head tail ih generalizing a b
   trivial
@@ -195,35 +195,198 @@ def invert : EdgeColoring c G :=
 -- def pathEdges (P : Path C a b x) : EdgeSet G where
 --   val :=
 
-def pathEdges (P : List (Vertex n)) : List (Edge n) :=
-  match P with
-| [] => []
-| [_] => []
-| p₁ :: p₂ :: ps => (p₁, p₂) :: (p₂, p₁) :: pathEdges ps
+-- def pathEdges (P : List (Vertex n)) : List (Edge n) :=
+--   match P with
+-- | [] => []
+-- | [_] => []
+-- | p₁ :: p₂ :: ps => (p₁, p₂) :: (p₂, p₁) :: pathEdges (p₂ :: ps)
 
-theorem not_mem_pathEdges_if_aux {e : Edge n} {P : List (Vertex n)}
-  (h : e.1 ∉ P ∨ e.2 ∉ P) :
-  e ∉ pathEdges P := by
-  rcases h with h | h
-  all_goals
-  fun_induction pathEdges P <;> simp_all
-  contrapose! h
-  rcases h with h | h <;> simp_all
+-- theorem pathEdges_spec (P : List (Vertex n)) :
+--   List.Chain' (fun u v ↦ (u, v) ∈ pathEdges P) P := by
+--   fun_induction pathEdges
+--   all_goals simp_all
+--   simp_all [List.chain'_iff_get]
 
-theorem not_mem_pathEdges_if {e : Edge n} {P : Path C a b x}
-  (h : e.1 ∉ P.val ∨ e.2 ∉ P.val) :
-  e ∉ pathEdges P.val := not_mem_pathEdges_if_aux h
+-- theorem not_mem_pathEdges_if_aux {e : Edge n} {P : List (Vertex n)}
+--   (h : e.1 ∉ P ∨ e.2 ∉ P) :
+--   e ∉ pathEdges P := by
+--   rcases h with h | h
+--   all_goals
+--   fun_induction pathEdges P <;> simp_all
+--   contrapose! h
+--   rcases h with h | h <;> simp_all
 
-theorem mem_pathEdges_if {e : Edge n} {P : Path C a b x}
-  (h : e ∈ pathEdges P.val) : e.1 ∈ P.val ∧ e.2 ∈ P.val := by
-  contrapose! h
-  exact not_mem_pathEdges_if h
+-- theorem not_mem_pathEdges_if {e : Edge n} {P : Path C a b x}
+--   (h : e.1 ∉ P.val ∨ e.2 ∉ P.val) :
+--   e ∉ pathEdges P.val := not_mem_pathEdges_if_aux h
+
+-- theorem mem_pathEdges_if {e : Edge n} {P : Path C a b x}
+--   (h : e ∈ pathEdges P.val) : e.1 ∈ P.val ∧ e.2 ∈ P.val := by
+--   contrapose! h
+--   exact not_mem_pathEdges_if h
+
+-- theorem mem_pathEdges_symm {e : Edge n} {P : List (Vertex n)}
+--   (h : e ∈ pathEdges P) : e.swap ∈ pathEdges P := by
+--   fun_induction pathEdges P <;> simp_all
+--   rcases h with h | h | h
+--   any_goals subst h
+--   all_goals tauto
+
+-- include hne in
+-- theorem exists_other_nbor_of_mem_pathEdges {u v : Vertex n} {P : (List (Vertex n))}
+--   (h : (u, v) ∈ pathEdges P) (hne : P ≠ []) (hu : u ≠ P.head hne ∧ u ≠ P.getLast hne)
+--   (hcolor : alternatesColor C P a b) :
+--   ∃ w, (u, w) ∈ pathEdges P ∧ color C (u, w) ≠ color C (u, v) := by
+--   fun_induction pathEdges P <;> simp_all
+--   unfold alternatesColor alternates alternates at hcolor
+--   split at hcolor <;> simp_all [pathEdges]
+--   rename_i heq
+--   rcases h with h | h
+--   simp_all [color_symm]
+--   left
+--   tauto
+--   rename_i p₁ p₂ ps _ v₁ v₂ vs
+--   rcases h with h | h | h
+--   use p₁
+--   constructor
+--   · left
+--     tauto
+--   · simp_all [color_symm]
+--   use v
+--   constructor
+--   · tauto
+--   -- · simp_all [color_symm]
+--     -- have : u ∈ (v₂ :: vs) ∧ v ∈ (v₂ :: vs) := by
+--     --   have := @not_mem_pathEdges_if_aux _ (u, v) (v₂ :: vs)
+--     --   simp at this
+
+
+--       -- stop
+
+
+
+
+
+
+
+--   stop
+
+
+
+
+
+
+
+
+
+
+--   sorry
+
+
+
+-- -- theorem getElem_of_mem_pathEdges {v : Vertex n} {P : List (Vertex n)}
+-- --   {i : Nat} {hi : i < P.length}
+-- --   (h : (P[i], v) ∈ pathEdges P) :
+-- --   P[i+1]? = some v ∨ P[i-1]? = some v := by
+-- --   fun_induction pathEdges P <;> simp_all
+-- --   rename_i p₁ p₂ ps ih
+-- --   rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩ | h
+-- --   subst h2
+
+
+
+
+-- --   sorry
+
+-- #check List.getElem_of_mem
+
+-- include ha hb in
+-- theorem present_of_mem_pathEdges {e : Edge n} {P : List (Vertex n)}
+--   (h1 : alternatesColor C P a b) (h2 : e ∈ pathEdges P) :
+--   present G e := by
+--   have := edges_present ha hb P h1
+--   have := pathEdges_spec P
+
+
+
+
+--   sorry
+
+-- theorem getElem_of_mem_pathEdges {u v : Vertex n} {P : List (Vertex n)}
+--   (h : (u, v) ∈ pathEdges P) (h2 : P.Nodup) :
+--   (∃ i, ∃ (h : i < P.length - 1), P[i] = u ∧ P[i + 1] = v) ∨
+--   (∃ i, ∃ (h : i < P.length), P[i] = u ∧ P[i-1] = v) := by
+--   fun_induction pathEdges
+--   · simp_all
+--   · simp_all
+--   rename_i p₁ p₂ ps ih
+--   simp at h
+--   rcases h with h | h | h
+--   · left
+--     use 0, (by simp_all)
+--     simp [h]
+--   · right
+--     use 1, (by simp_all)
+--     simp [h]
+--   · specialize ih h (List.Nodup.of_cons h2)
+--     rcases ih with ⟨i, hi, ih⟩ | ⟨i, hi, ih⟩
+--     · left
+--       use i+1, (by simpa)
+--       simpa
+--     · right
+--       use i+1, (by simpa)
+--       simp [ih]
+--       rw [List.getElem_cons]
+--       split
+--       have : u ∈ (p₂ :: ps) ∧ v ∈ (p₂ :: ps) := by
+--         have := @not_mem_pathEdges_if_aux _ (u, v) (p₂ :: ps)
+--         simp_all
+--         tauto
+--       have : p₁ ≠ p₂ := by
+--         simp at h2
+--         tauto
+--       have : p₁ ∉ (p₂ :: ps) := by
+--         exact List.Nodup.notMem h2
+--       have : p₂ ∉ ps := by
+--         apply List.Nodup.notMem
+--         exact List.Nodup.of_cons h2
+--       simp_all
+--       rcases ih with ⟨aux1, aux2⟩
+--       subst aux1 aux2
+--       exfalso
+--       sorry
+--       sorry
+
+
+
+
+
+
+
+
+
+
+--   -- sorry
+
+-- theorem color_of_mem_pathEdges {e : Edge n} {P : List (Vertex n)}
+--   (h : e ∈ pathEdges P)
+--   (hcolor : alternatesColor C P a b) :
+--   color C e = a ∨ color C e = b := by
+--   fun_induction pathEdges P generalizing a b <;> simp_all
+--   unfold alternatesColor alternates at hcolor
+--   rcases h with h | h | h <;> simp_all [color_symm]
+--   rename_i ih
+--   specialize @ih b a
+--   apply Or.symm
+--   apply ih
+--   simp [alternatesColor]
+--   tauto
 
 def isInverted_notmem (C C' : EdgeColoring c G) (P : Path C a b x) : Prop :=
-  ∀ e ∈ (toEdgeSet G).val, e ∉ pathEdges P.val → (color C e = color C' e)
+  ∀ e ∈ (toEdgeSet G).val, e ∉ pathEdges P → (color C e = color C' e)
 
 def isInverted_mem (C C' : EdgeColoring c G) (P : Path C a b x) : Prop :=
-  ∀ e ∈ pathEdges P.val, (color C e = a → color C' e = b) ∧ (color C e = b → color C' e = a)
+  ∀ e ∈ pathEdges P, (color C e = a → color C' e = b) ∧ (color C e = b → color C' e = a)
 
 def isInverted (C C' : EdgeColoring c G) (P : Path C a b x) :=
   isInverted_notmem C C' P ∧ isInverted_mem C C' P

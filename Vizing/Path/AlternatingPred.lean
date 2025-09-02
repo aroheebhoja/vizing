@@ -136,3 +136,11 @@ theorem middle_spec {V C : Type*} {p : V → V → C} {a b : C} {L : List V}
     have : i - 1 + 1 = i := by omega
     simp_rw [this] at ih
     tauto
+
+theorem chain'_of_alternates
+  {V C : Type*} {p : V → V → C} {a b : C} {L : List V} (h : alternates p a b L) :
+  List.Chain' (fun x y ↦ p x y = a ∨ p x y = b) L := by
+  fun_induction alternates <;> simp_all
+  rename_i ih
+  simp_rw [or_comm] at ih
+  assumption

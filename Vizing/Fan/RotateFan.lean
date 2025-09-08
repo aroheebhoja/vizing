@@ -39,11 +39,17 @@ def removeLast (F : Fan C x y) (h : F.val.size > 1) : Fan C x y where
     apply dropLast_nodup_of_nodup
     exact F.nodupAx
 
+theorem present_of_mem_fan {F : Fan C x y} {u : Vertex n} (h : u ∈ F.val)  :
+  present G (x, u) := by
+  simp_rw [present, present_symm G (x, u), and_self]
+  apply F.nborsAx
+  simpa
+
 theorem last_present (F : Fan C x y) :
   present G (x, (last F)) := by
-  simp_rw [present, present_symm G (x, last F), and_self, last]
-  apply F.nborsAx
-  simp
+  apply present_of_mem_fan
+  simp only [last, Array.back]
+  apply Array.getElem_mem
 
 theorem not_in_fan (F : Fan C x y) : x ∉ F.val := by
   intro h

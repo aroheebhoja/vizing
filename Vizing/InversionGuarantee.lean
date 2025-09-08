@@ -7,7 +7,7 @@ import Vizing.Path
 open Aux Graph EdgeColoring Fan Path
 
 variable
-  {n c : Nat} {G : Graph n} (C : EdgeColoring c G)
+  {n c : Nat} {G : Graph n} {C : EdgeColoring c G}
   {x y : Vertex n} {a b : Color c} (ha : a.isSome) (hb : b.isSome)
 
 -- Maximality : all free colors on last vertex of fan are free on x
@@ -36,67 +36,145 @@ theorem freeColors_inversion_invariant {C' : EdgeColoring c G} {P : Path C a b x
     · specialize hnotmem (u, v)
       use v
       rwa [hnotmem]
-      rw [← mem_edgeSet_iff_present]
-      apply C'.representsEdgesAx
-      rwa [← color.eq_def, hv]
       assumption
+
+-- -- Need maximality condition -- if next color isn't free on last color, then we might not be
+-- -- inverting everything and so colors stay incident that shouldn't be
+-- include ha hb
+-- theorem freeColors_inversion_endpoint_b {C' : EdgeColoring c G} {P : Path C a b x}
+--   {u : Vertex n} {d : Color c}
+--   (hC' : isInverted C C' P) (h1 : u = P.val.head (P.nonemptyAx) ∨ u = P.val.getLast (P.nonemptyAx))
+--   (h2 : a ∈ freeColorsOn C u) (h3 : isMaximalPath C P):
+--   b ∈ freeColorsOn C' u := by
+--   apply freeColor_of_not_exists_and_isSome _ hb
+--   have := not_exists_of_freeColor _ h2
+--   contrapose! this
+--   rcases this with ⟨v, hv⟩
+--   have : v ∈ P.val := by
+--     by_contra h
+--     have := P.colorAx
+--     unfold alternatesColor alternates at this
+--     apply not_exists_of_freeColor at h2
+--     split at this <;> simp_all [P.nonemptyAx]
+
+
+
+--     sorry
+
+
+--   -- have : (u, v) ∈ pathEdges P := by
+--   --   rw [pathEdges, mem_allAdjacentPairs_iff_adjacent]
+--   --   simp only [List.head_eq_getElem, List.getLast_eq_getElem] at h1
+--   --   rcases h1 with h1 | h1
+--   --   · left
+--   --     use 0, (by omega), (by tauto)
+--   --     simp [isMaximalPath] at h3
+
+
+
+--     sorry
+
+
+--   sorry
+
+--   -- simp_all
+--   -- by_cases h : P.val.length > 1
+
+--   -- rcases h1 with h1 | h1
+
+
+--   -- sorry
+
+--   -- sorry
+
+--   -- apply freeColor_of_not_exists_and_isSome _ hb
+--   -- intro h
+--   -- rcases h with ⟨v, hv⟩
+--   -- by_cases this : (u, v) ∈ pathEdges P
+--   -- · have h3 := color_of_mem_pathEdges this
+--   --   have := hC'.right (u, v) this
+--   --   apply not_exists_of_freeColor at h2
+--   --   grind
+--   -- have := hC'.left (u, v) ?_ this
+
+
+
+
+
+
+--   -- by_cases hc : color C (u, v) = a ∨ color C (u, v) = b
+--   -- rcases hc with hc | hc
+--   -- · apply not_exists_of_freeColor at h2
+--   --   tauto
+--   -- · have := hC'.right (u, v)
+
+
+
+
+
+
+
+
+
+
+theorem freeColors_inversion_invariant' {C' : EdgeColoring c G} {P : Path C a b x}
+  {u : Vertex n} {d : Color c}
+  (hC' : isInverted C C' P) (hd : d ≠ a ∧ d ≠ b)
+  (hu : d ∈ freeColorsOn C u) : d ∈ freeColorsOn C' u := by
+  have := isSome_if_mem_freeColorsOn C u hu
+  apply freeColor_of_not_exists_and_isSome
+  · exact this
+  · apply not_exists_of_freeColor at hu
+    contrapose! hu
+    rcases hu with ⟨v, hv⟩
+    have hpres : present G (u, v) := by
+      apply C'.representsEdgesAx
+      unfold color at hv
+      simp at ⊢ hv
+      rwa [hv]
+    use v
+    rw [← hv]
+    apply inversion_invariant_of_edgeColor'
+    any_goals assumption
+    simp_all
 
 theorem colorAx_invariant_aux
   {C' : EdgeColoring c G} {F : List (Vertex n)} (hF : F ≠ [])
   (hF2 : F.Nodup)
-  (h1 : ∀ (a b : Vertex n), (a, b) ∈ (toEdgeSet G).val → color C (a, b) = color C' (a, b))
+  (h1 : ∀ (a b : Vertex n), color C (a, b) = color C' (a, b))
   (h2 : List.Chain' (fun f₁ f₂ ↦ color C (x, f₂) ∈ freeColorsOn C f₁) F)
   (h3 : ∀ z ∈ F, z ≠ F.head hF → (color C (x, z)).isSome) :
   List.Chain' (fun f₁ f₂ ↦ color C' (x, f₂) ∈ freeColorsOn C' f₁) F := by
-  induction' F
-  · trivial
-  · rename_i head tail ih
-    apply List.Chain'.cons'
-    by_cases htail : tail = []
-    · subst htail
-      trivial
-    apply ih
-    · exact List.Nodup.of_cons hF2
-    · apply List.Chain'.tail at h2
-      simpa using h2
-    · intro z hz1 hz2
-      have := List.mem_cons_of_mem head hz1
+  rcases List.exists_cons_of_ne_nil hF with ⟨head, tail, hF⟩
+  by_cases htail : tail = []
+  · subst htail hF
+    exact List.chain'_singleton head
+  · rw [List.chain'_iff_get] at ⊢ h2
+    simp at ⊢ h2
+    intro i h
+    specialize h2 i h
+    apply freeColor_of_not_exists_and_isSome
+    · rw [← h1]
       apply h3
-      · exact this
-      · simp only [List.head_cons]
-        by_contra hc
-        rw [hc] at hz1
-        exact List.Nodup.notMem hF2 hz1
-    · assumption
-    · intro z hz
-      have aux : (x, z) ∈ (toEdgeSet G).val := by
-        rw [← mem_edgeSet_iff_present]
-        apply C.representsEdgesAx
-        apply h3
-        · exact List.mem_cons_of_mem head (List.mem_of_mem_head? hz)
-        · grind
-      rcases List.chain'_cons'.mp h2 with ⟨h4, _⟩
-      specialize h4 z hz
-      have : ∀ a, a ∈ freeColorsOn C head → a ∈ freeColorsOn C' head := by
-        intro a ha
-        have h5 : a.isSome := by exact isSome_if_mem_freeColorsOn C head ha
-        apply freeColor_of_not_exists_and_isSome
-        · assumption
-        apply not_exists_of_freeColor at ha
-        contrapose! ha
-        rcases ha with ⟨v, hv⟩
-        use v
-        rwa [h1]
-        · rw [← mem_edgeSet_iff_present]
-          apply C'.representsEdgesAx
-          rwa [← color.eq_def, hv]
-      rw [← h1]
-      tauto
-      assumption
+      · simp
+      · by_contra hc
+        rw [List.head_eq_getElem, List.Nodup.getElem_inj_iff hF2] at hc
+        linarith
+    apply not_exists_of_freeColor at h2
+    contrapose! h2
+    rcases h2 with ⟨v, hv⟩
+    use v
+    simp_all
 
+
+include ha hb in
 theorem colorAx_invariant {C' : EdgeColoring c G} {F : Fan C x y}
-  (h : ∀ (a b : Vertex n), (a, b) ∈ (toEdgeSet G).val → color C (a, b) = color C' (a, b)) :
+  (h : ∀ (a b : Vertex n), color C (a, b) = color C' (a, b)) :
   colorAx C' F.val x := by
+  rcases F with ⟨val, nborsAx, nonemptyAx, firstElemAx, colorAx, nodupAx⟩
+  simp_all
+
+
   apply colorAx_invariant_aux
   · exact F.nodupAx
   · assumption
@@ -110,13 +188,37 @@ theorem colorAx_invariant {C' : EdgeColoring c G} {F : Fan C x y}
   · simp only [ne_eq, Array.toList_eq_nil_iff]
     exact F.nonemptyAx
 
-/-
-Lemma : if a fan vertex u is not a member of the path, the color of (x, u) remains unchanged
-        because the path inversion only affects edges colored a or b
 
-        b is free on x
-        if a fan vertex is in the path it must be colored a
--/
+include ha in
+theorem color_neq_of_fan_edge {C : EdgeColoring c G} {F : Fan C x y}
+  {j : Fin F.val.size}
+  (hj : color C (x, F.val[j]) = a)
+  (hx : b ∈ freeColorsOn C x)
+  {i : Nat} (hi1 : i < F.val.size) (hi2 : i ≠ j) :
+  color C (x, F.val[i]) ≠ a ∧ color C (x, F.val[i]) ≠ b := by
+  constructor
+  · by_contra hc
+    have : (color C (x, F.val[j])).isSome := by rwa [hj]
+    rw [← hc] at hj
+    apply color_unique at hj
+    rcases hj with hj | hj <;> simp_all
+    apply (List.Nodup.getElem_inj_iff F.nodupAx).mp at hj
+    exact hi2 (Eq.symm hj)
+  · apply not_exists_of_freeColor at hx
+    contrapose! hx
+    use F.val[i]
+
+include ha hb in
+theorem fan_edges_invariant {C C' : EdgeColoring c G} {F : Fan C x y} {P : Path C a b x}
+  {j : Fin F.val.size}
+  (hj : color C (x, F.val[j]) = a)
+  (hC' : isInverted C C' P)
+  (hx : b ∈ freeColorsOn C x)
+  {i : Nat} (hi1 : i < F.val.size) (hi2 : i ≠ j) :
+  color C (x, F.val[i]) = color C' (x, F.val[i]) := by
+  apply inversion_invariant_of_edgeColor
+  assumption
+  exact color_neq_of_fan_edge ha hj hx hi1 hi2
 
 include ha in
 theorem maximalPath_singleton_if {C : EdgeColoring c G} {F : Fan C x y} {P : Path C a b x}
@@ -162,11 +264,11 @@ theorem maximalPath_singleton_if {C : EdgeColoring c G} {F : Fan C x y} {P : Pat
       simp_all [color]
     simp_all [color, freeColorsOn, incidentColorsOn, Option.isSome_iff_ne_none]
 
-@[simp]
-theorem fan_size_eq (F : Fan C x y) : (F.val.size - 1 + 1) = F.val.size := by
-  apply Nat.sub_add_cancel
-  apply Nat.succ_le_of_lt
-  exact Array.size_pos_iff.mpr F.nonemptyAx
+-- @[simp]
+-- theorem fan_size_eq (F : Fan C x y) : (F.val.size - 1 + 1) = F.val.size := by
+--   apply Nat.sub_add_cancel
+--   apply Nat.succ_le_of_lt
+--   exact Array.size_pos_iff.mpr F.nonemptyAx
 
 include ha in
 theorem inversion_guarantee_of_not_exists (F : Fan C x y)
@@ -174,12 +276,10 @@ theorem inversion_guarantee_of_not_exists (F : Fan C x y)
   (hC' : isInverted C C' P) (ha1 : a ∈ freeColorsOn C (last F))
   (hF : isMaximal F) (hxy : color C (x, y) = none)
   (hj : ¬∃ j : Fin F.val.size, color C (x, F.val[j]) = a) :
-  ∃ i : Fin F.val.size, a ∈ freeColorsOn C' F.val[i] ∧
-                        colorAx C' (Array.extract F.val 0 (i+1)) x := by
-
+  a ∈ freeColorsOn C' (F.val[F.val.size - 1]'(by
+    simp; apply Array.size_pos_iff.mpr; exact F.nonemptyAx)) ∧ colorAx C' F.val x := by
   have hP : P.val = [x] :=
     maximalPath_singleton_if ha ha1 hF hxy hj
-  use ⟨F.val.size - 1, (by simp; apply Array.size_pos_iff.mpr; exact F.nonemptyAx)⟩
   simp [isInverted, isInverted_notmem, isInverted_mem, hP,
     pathEdges, color, allAdjacentPairs] at hC'
   constructor
@@ -188,27 +288,34 @@ theorem inversion_guarantee_of_not_exists (F : Fan C x y)
     contrapose! ha1
     rcases ha1 with ⟨v, hv⟩
     use v
-    rw [← hv]
-    simp [color, last, Array.back_eq_getElem, allAdjacentPairs] at ⊢ hC'
-    apply hC'
-    rw [← mem_edgeSet_iff_present]
-    apply C'.representsEdgesAx
-    simp [color] at ⊢ hv
-    rwa [hv]
-  · have hcolor := F.colorAx
-    simp only [fan_size_eq, Array.extract_size]
-    apply colorAx_invariant
-    assumption
+    simpa [color, last, Array.back_eq_getElem, color_symm, hC'] using hv
+  · apply colorAx_invariant
+    repeat assumption
 
-include ha in
-theorem inversion_guarantee_of_exists (F : Fan C x y)
-  {C' : EdgeColoring c G} {P : Path C a b x}
+    simp
+    have hcolor := F.colorAx
+    apply colorAx_invariant
+    repeat assumption
+
+
+theorem chain'_imp_of_mem {α : Type*} {R S : α → α → Prop}
+     {l : List α} (h1 : ∀ a ∈ l, ∀ b ∈ l, R a b → S a b) (h2 : List.Chain' R l) :
+    List.Chain' S l := by
+    rw [List.Chain'.iff_mem] at ⊢ h2
+    apply (List.Chain'.imp ?_)
+    · exact h2
+    · intro a b h
+      tauto
+
+include ha hb in
+theorem inversion_guarantee_of_exists_and_mem_path (F : Fan C x y)
+  {C' : EdgeColoring c G} {P : Path C a b x} {j : Fin F.val.size}
   (hC' : isInverted C C' P) (ha1 : a ∈ freeColorsOn C (last F))
   (hF : isMaximal F) (hxy : color C (x, y) = none)
-  (hj : ∃ j : Fin F.val.size, color C (x, F.val[j]) = a) :
-  ∃ i : Fin F.val.size, a ∈ freeColorsOn C' F.val[i] ∧
-                        colorAx C' (Array.extract F.val 0 (i+1)) x := by
-  rcases hj with ⟨j, hj⟩
+  (hj : color C (x, F.val[j]) = a) (hp : F.val[j.val - 1] ∈ P.val)
+  (hx : b ∈ freeColorsOn C x) :
+  a ∈ freeColorsOn C' (F.val[F.val.size - 1]'(by
+    simp; apply Array.size_pos_iff.mpr; exact F.nonemptyAx)) ∧ colorAx C' F.val x := by
   have aux0 : j.val > 0 := by
     by_contra hc
     simp_all [F.firstElemAx, Option.isSome_iff_ne_none]
@@ -216,27 +323,152 @@ theorem inversion_guarantee_of_exists (F : Fan C x y)
     rw [← hj]
     apply chain'_rel_of_idx_consec (Nat.sub_lt_of_lt j.isLt) (j.isLt) F.colorAx
     omega
-  by_cases hp : F.val[j.val - 1] ∈ P.val
-  · use ⟨F.val.size - 1, (by simp; apply Array.size_pos_iff.mpr; exact F.nonemptyAx)⟩
-    sorry
+  have aux2 : P.val.length > 1 := by
+      by_contra hc
+      have := P.firstElemAx
+      have := not_in_fan F
+      have : ∃ y, P.val = [y] := by
+        have := List.length_pos_iff.mpr P.nonemptyAx
+        exact List.length_eq_one_iff.mp (by omega)
+      rcases this with ⟨y, hy⟩
+      grind
+  have aux3 : P.val[1]'(by sorry) = F.val[j.val] := by
+    have := P.colorAx
+    unfold alternatesColor alternates at this
+    split at this <;> simp_all
+    rename_i v₁ v₂ vs heq
+    have hv₁ : v₁ = x := by
+      have := P.firstElemAx
+      aesop
+    simp_all only
+    have : color C (x, F.val[j.val]) = color C (x, v₂) := by
+      rw [hj, this.left]
+    have := color_unique C x _ _ this
+    aesop
+  have aux4 : F.val[j.val] ∈ P.val := by exact List.mem_of_getElem aux3
+  constructor
+  · apply freeColor_of_not_exists_and_isSome _ ha
+    simp [isInverted, isInverted_notmem, isInverted_mem, aux1, pathEdges, color] at hC'
+    rcases hC' with ⟨hC', _⟩
+    have ha2 := not_exists_of_freeColor C ha1
+    contrapose! ha2
+    rcases ha2 with ⟨v, hv⟩
+    use v
+    rw [← hv]
+    simp [color, last, Array.back_eq_getElem]
+    apply hC'
+    · rw [← mem_edgeSet_iff_present]
+      apply C'.representsEdgesAx
+      simp [color] at ⊢ hv
+      rwa [hv]
+    · by_contra hc
+      rw [mem_allAdjacentPairs_iff_adjacent] at hc
+      apply mem_of_adjacent at hc
+      simp [last, Array.back] at ha1
+      simp [isMaximal] at hF
+      have : F.val[F.val.size - 1] ≠ F.val[j.val - 1] := by
+        by_contra hc
+        apply (List.Nodup.getElem_inj_iff F.nodupAx).mp at hc
+        have : j = F.val.size := by omega
+        have := j.isLt
+        omega
+      have := isLast_if C hp aux1
+      have := isLast_if C hc.left ha1
+      simp_all
+  · have hcolor := F.colorAx
+    unfold colorAx fan_prop at ⊢ hcolor
+    apply List.chain'_iff_get.mpr
+    intro i hi
+    by_cases hij : i = j.val - 1
+    · subst hij
+      have : j.val - 1 + 1 = j := by omega
+      simp [aux0, this]
+      have : color C' (x, F.val[j.val]) = b := by
+        have : (x, F.val[↑j]) ∈ pathEdges P := by
+          simp [pathEdges]
+          rw [mem_allAdjacentPairs_iff_adjacent]
+          left
+          have := P.nonemptyAx
+          have := P.firstElemAx
+          use 0, (by simpa)
+        exact (hC'.right _ this).left hj
 
-  · use ⟨j.val - 1, Nat.sub_lt_of_lt j.isLt⟩
-    sorry
+      sorry
+    · simp
+      have : color C (x, (F.val[i + 1]'(by exact Nat.add_lt_of_lt_sub hi))) =
+             color C' (x, (F.val[i + 1]'(by exact Nat.add_lt_of_lt_sub hi))) := by
+        apply fan_edges_invariant ha hb hj hC' hx (by grind) (by omega)
+      rw [← this]
+      apply freeColors_inversion_invariant' ha hb hC' ?_
+        (by apply @chain'_rel_of_idx_consec _ _ F.val.toList i (i + 1) (by omega) (by omega) hcolor; rfl)
+      apply color_neq_of_fan_edge ha hb hj hx (by grind) (by omega)
 
+include ha in
+theorem inversion_guarantee_of_exists_and_not_mem_path (F : Fan C x y)
+  {C' : EdgeColoring c G} {P : Path C a b x} {j : Fin F.val.size}
+  (hC' : isInverted C C' P) (hxy : color C (x, y) = none)
+  (hj : color C (x, F.val[j]) = a) (hp : F.val[j.val - 1] ∉ P.val)
+  (hx : b ∈ freeColorsOn C x) :
+  a ∈ freeColorsOn C' (F.val[j.val - 1]'(Nat.sub_lt_of_lt j.isLt)) ∧
+  colorAx C' (Array.extract F.val 0 j) x := by
+  have aux0 : j.val > 0 := by
+    by_contra hc
+    simp_all [F.firstElemAx, Option.isSome_iff_ne_none]
+  have aux1 : a ∈ freeColorsOn C F.val[j.val - 1] := by
+    rw [← hj]
+    apply chain'_rel_of_idx_consec (Nat.sub_lt_of_lt j.isLt) (j.isLt) F.colorAx
+    omega
+  constructor
+  · apply freeColor_of_not_exists_and_isSome _ ha
+    apply not_exists_of_freeColor at aux1
+    contrapose! aux1
+    rcases aux1 with ⟨v, hv⟩
+    use v
+    rw [← hv]
+    simp [isInverted, isInverted_notmem] at hC'
+    rcases hC' with ⟨hC', _⟩
+    apply hC'
+    · rw [← mem_edgeSet_iff_present]
+      apply C'.representsEdgesAx
+      simp [color] at ⊢ hv
+      rwa [hv]
+    · rw [pathEdges, mem_allAdjacentPairs_iff_adjacent]
+      by_contra hc
+      apply mem_of_adjacent at hc
+      tauto
+  · rw [colorAx]
+    unfold fan_prop
+    have : List.Chain' (fun f₁ f₂ ↦ color C (x, f₂) ∈ freeColorsOn C f₁) (F.val.extract 0 ↑j).toList := by
+      have := F.colorAx
+      unfold colorAx fan_prop at this
+      simp_all
+      exact List.Chain'.take this ↑j
+    apply chain'_imp_of_mem _ this
+    intro z hz w hw h
+    simp at hz hw
+    suffices : color C (x, w) = color C' (x, w)
+    rw [← this]
+    apply freeColors_inversion_invariant' hC' ?_ h
+    all_goals
+      rcases List.getElem_of_mem hz with ⟨k, hk1, hk2⟩
+      rcases List.getElem_of_mem hw with ⟨l, hl1, hl2⟩
+      simp at hk1 hk2 hl1 hl2
+      subst hk2 hl2
+    apply color_neq_of_fan_edge ha hj hx (by omega) (by omega)
+    apply fan_edges_invariant ha hj hC' hx (by omega) (by omega)
 
+#exit
 
 include ha hb in
-theorem inversion_guarantee (F : Fan C x y)
+theorem inversion_guarantee_of_exists (F : Fan C x y)
   {C' : EdgeColoring c G} {P : Path C a b x}
   (hC' : isInverted C C' P) (ha1 : a ∈ freeColorsOn C (last F))
-  (hF : isMaximal F) (hxy : color C (x, y) = none) :
-  ∃ i : Fin F.val.size, a ∈ freeColorsOn C' F.val[i] ∧ colorAx C' (Array.extract F.val 0 (i+1)) x := by
-  have hsize : (F.val.size - 1 + 1) = F.val.size := by
-    apply Nat.sub_add_cancel
-    apply Nat.succ_le_of_lt
-    exact Array.size_pos_iff.mpr F.nonemptyAx
-  by_cases h : ∃ j : Fin F.val.size, color C (x, F.val[j]) = a
-  rcases h with ⟨j, hj⟩
+  (hF : isMaximal F) (hxy : color C (x, y) = none)
+  (hj : ∃ j : Fin F.val.size, color C (x, F.val[j]) = a)
+  (hx : b ∈ freeColorsOn C x) :
+  ∃ i : Fin F.val.size, a ∈ freeColorsOn C' F.val[i] ∧
+                        colorAx C' (Array.extract F.val 0 (i+1)) x := by
+  rcases hj with ⟨j, hj⟩
   have aux0 : j.val > 0 := by
     by_contra hc
     simp_all [F.firstElemAx, Option.isSome_iff_ne_none]
@@ -275,50 +507,27 @@ theorem inversion_guarantee (F : Fan C x y)
         have := isLast_if C hp aux1
         have := isLast_if C hc.left ha1
         simp_all
-    · simp [hsize]
-      -- unfold colorAx fan_prop
-      apply List.Chain'.iff_mem.mpr
-
-      have : ∀ f₁ f₂, f₁ ∈ F.val.toList ∧ f₂ ∈ F.val.toList ∧ fan_prop C x f₁ f₂ ↔ f₁ ∈ F.val.toList ∧ f₂ ∈ F.val.toList ∧ fan_prop C' x f₁ f₂ := by
-        unfold fan_prop
-        intro f₁ f₂
-        have (h1 : f₁ ∈ F.val.toList) : f₁ ≠ P.val.head P.nonemptyAx := by
-          rw [List.head_eq_getElem, P.firstElemAx]
-          contrapose! h1
-          subst h1
-          rw [Array.mem_toList_iff]
-          exact not_in_fan F
-        -- case on whether f₁ is the last value in the path
-        by_cases hf₁ : f₁ = P.val.getLast P.nonemptyAx
-        sorry
-        constructor
-        · intro ⟨h1, h2, h3⟩
-          repeat any_goals apply And.intro
-          any_goals assumption
-          apply freeColors_inversion_invariant C ha hb hC'
-          · tauto
+    · simp only [fan_size_eq, Array.extract_size]
+      unfold colorAx fan_prop
+      apply chain'_imp_of_mem ?_
+      · exact F.colorAx
+      intro z hz w hw h
+      rcases List.getElem_of_mem hz with ⟨k, hk1, hk2⟩
+      rcases List.getElem_of_mem hw with ⟨l, hl1, hl2⟩
+      simp at hk1 hk2 hl1 hl2
+      subst hk2 hl2
+      by_cases heq : l = j
+      subst heq
 
 
 
+      sorry
 
-
-
-          stop
-
-          sorry
-        sorry
-      apply (List.Chain'.iff this).mp
-      apply List.Chain'.iff_mem.mp
-      exact F.colorAx
-
-
-      -- simp_rw [freeColors_invariant]
-      -- apply colorAx_invariant C
-      --   (by exact List.ne_nil_of_length_eq_add_one (Eq.symm hsize)) F.nodupAx
-      --   ?_ F.colorAx ?_
-      -- sorry
-      -- sorry
-
+      have : color C (x, F.val[l]) = color C' (x, F.val[l]) := by
+        apply fan_edges_invariant ha hj hC' hx (by omega) heq
+      rw [← this]
+      apply freeColors_inversion_invariant' hC' ?_ h
+      apply color_neq_of_fan_edge ha hj hx (by omega) (by omega)
   · use ⟨j.val - 1, Nat.sub_lt_of_lt j.isLt⟩
     constructor
     · apply freeColor_of_not_exists_and_isSome _ ha
@@ -338,9 +547,44 @@ theorem inversion_guarantee (F : Fan C x y)
         by_contra hc
         apply mem_of_adjacent at hc
         tauto
-    · sorry
+    · have : j.val - 1 + 1 = j := by omega
+      rw [this, colorAx]
+      unfold fan_prop
+      have : List.Chain' (fun f₁ f₂ ↦ color C (x, f₂) ∈ freeColorsOn C f₁) (F.val.extract 0 ↑j).toList := by
+        have := F.colorAx
+        unfold colorAx fan_prop at this
+        simp_all
+        exact List.Chain'.take this ↑j
+      apply chain'_imp_of_mem _ this
+      intro z hz w hw h
+      simp at hz hw
+      have : color C (x, w) = color C' (x, w) := by
+        rcases List.getElem_of_mem hz with ⟨k, hk1, hk2⟩
+        rcases List.getElem_of_mem hw with ⟨l, hl1, hl2⟩
+        simp at hk1 hk2 hl1 hl2
+        subst hk2 hl2
+        apply fan_edges_invariant ha hj hC' hx (by omega) (by omega)
+      rw [← this]
+      apply freeColors_inversion_invariant' hC' ?_ h
+      rcases List.getElem_of_mem hz with ⟨k, hk1, hk2⟩
+      rcases List.getElem_of_mem hw with ⟨l, hl1, hl2⟩
+      simp at hk1 hk2 hl1 hl2
+      subst hk2 hl2
+      apply color_neq_of_fan_edge ha hj hx (by omega) (by omega)
 
-
+include ha hb in
+theorem inversion_guarantee (F : Fan C x y)
+  {C' : EdgeColoring c G} {P : Path C a b x}
+  (hC' : isInverted C C' P) (ha1 : a ∈ freeColorsOn C (last F))
+  (hF : isMaximal F) (hxy : color C (x, y) = none)
+  (hx : b ∈ freeColorsOn C x) :
+  ∃ i : Fin F.val.size, a ∈ freeColorsOn C' F.val[i] ∧ colorAx C' (Array.extract F.val 0 (i+1)) x := by
+  have hsize : (F.val.size - 1 + 1) = F.val.size := by
+    apply Nat.sub_add_cancel
+    apply Nat.succ_le_of_lt
+    exact Array.size_pos_iff.mpr F.nonemptyAx
+  by_cases h : ∃ j : Fin F.val.size, color C (x, F.val[j]) = a
+  apply inversion_guarantee_of_exists <;> assumption
   apply inversion_guarantee_of_not_exists <;> assumption
 
 def findSubfanWithColor (F : Fan C x y)

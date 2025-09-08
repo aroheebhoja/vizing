@@ -34,6 +34,12 @@ theorem color_invariant (e : Edge n) (a : Color c)
   simp_rw [ne_eq, Prod.eq_iff_fst_eq_snd_eq] at h
   tauto
 
+theorem setEdgeColor_spec (e : Edge n) (a : Color c)
+  (hpres : present G e) (hvalid : edgeColorValid C e a) :
+  color (setEdgeColor C e a hpres hvalid) e = a := by
+  simp [setEdgeColor, color]
+  apply setEdge_spec1
+  assumption
 
 theorem setEdgeColor_symm {e : Edge n} {a : Color c}
   {hpres : present G e} {hvalid : edgeColorValid C e a} :

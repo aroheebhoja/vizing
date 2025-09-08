@@ -25,6 +25,11 @@ theorem next_eq_a_or_b {V C : Type*} (a b : C) (L : List V) :
   specialize ih b a
   tauto
 
+theorem next_a_b_ne_next_b_a {V C : Type*} (a b : C) (L : List V) (h : a ≠ b)
+  : next a b L ≠ next b a L := by
+  induction' L with head tail ih <;> simp_all [next, Ne.symm]
+
+
 mutual
 theorem last_b_of_next_a {V C : Type*} (p : V → V → C) (a b : C) (L : List V) (hlen : L.length > 1)
   (h : alternates p a b L)

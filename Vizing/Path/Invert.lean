@@ -1,5 +1,8 @@
 import Vizing.Path.PathEdges
 
+
+set_option maxHeartbeats 1000000
+
 namespace Path
 open Graph
 open EdgeColoring
@@ -129,6 +132,31 @@ theorem b_free_of_uncolored {L : List (Vertex n)}
   ∀ v ∈ L, b ∈ freeColorsOn (uncolor C a b ha hb L hnodup h) v := by
   exact fun v x ↦ (free_colors_of_uncolored ha hb hne hfirst hlast hnodup h v x).right
 
+
+theorem uncolor_spec1 (L : List (Vertex n)) (hnodup : L.Nodup) (hcolor : alternatesColor C L a b):
+  ∀ e, e ∉ allAdjacentPairs L → color C e = color (uncolor C a b ha hb L hnodup hcolor) e := by
+  fun_induction uncolor <;> simp_all [allAdjacentPairs]
+  rename_i hnodup _ _ ih
+  intro u v h1 h2 h3
+  rw [← ih]
+  apply color_invariant
+  simp; tauto
+  assumption
+
+theorem uncolor_spec2 (L : List (Vertex n)) (hnodup : L.Nodup) (hcolor : alternatesColor C L a b):
+  ∀ e, e ∈ allAdjacentPairs L → color (uncolor C a b ha hb L hnodup hcolor) e = none := by
+  fun_induction uncolor <;> simp_all [allAdjacentPairs]
+  rename_i hnodup _ _ ih
+  rw [color_symm]; simp
+  rw [← uncolor_spec1]
+  rw [color_symm]
+  apply setEdgeColor_spec
+  intro hc
+  rw [mem_allAdjacentPairs_iff_adjacent] at hc
+  apply mem_of_adjacent at hc
+  simp at hnodup hc
+  tauto
+
 def recolor (C : EdgeColoring c G) (a b : Color c) (ha : a.isSome) (hb : b.isSome)
   (hne : a ≠ b)
   (L : List (Vertex n)) (hnodup : L.Nodup)
@@ -167,228 +195,196 @@ def recolor (C : EdgeColoring c G) (a b : Color c) (ha : a.isSome) (hb : b.isSom
       (by apply List.Chain'.tail at h1; simpa using h1)
       auxb auxa
 
+
+theorem recolor_spec1 (hne : a ≠ b)
+  (L : List (Vertex n)) (hnodup : L.Nodup)
+  (h1 : List.Chain' (fun e₁ e₂ ↦ present G (e₁, e₂)) L)
+  (h2 : ∀ v ∈ L.tail, a ∈ freeColorsOn C v)
+  (h3 : ∀ v ∈ L, b ∈ freeColorsOn C v) :
+  ∀ e, e ∉ allAdjacentPairs L → color C e = color (recolor C a b ha hb hne L hnodup h1 h2 h3) e := by
+  fun_induction recolor <;> simp_all [allAdjacentPairs]
+  rename_i ih
+  intro a b h4 h5 h6
+  rw [← ih]
+  apply color_invariant
+  simp_all
+  assumption
+
+theorem recolor_spec2 (hne : a ≠ b)
+  (L : List (Vertex n)) (hnodup : L.Nodup)
+  (h1 : List.Chain' (fun e₁ e₂ ↦ present G (e₁, e₂)) L)
+  (h2 : ∀ v ∈ L.tail, a ∈ freeColorsOn C v)
+  (h3 : ∀ v ∈ L, b ∈ freeColorsOn C v) :
+  alternatesColor (recolor C a b ha hb hne L hnodup h1 h2 h3) L b a := by
+  unfold alternatesColor
+  fun_induction recolor <;> simp [alternates]
+  constructor
+  rename_i hnodup _ _ _ _ _ _ _ _
+  rw [← recolor_spec1]
+  apply setEdgeColor_spec
+  · intro hc
+    rw [mem_allAdjacentPairs_iff_adjacent] at hc
+    apply mem_of_adjacent at hc
+    simp at hnodup hc
+    tauto
+  assumption
+
+theorem recolor_spec3 (hne : a ≠ b)
+  (L : List (Vertex n)) (hnodup : L.Nodup) (hl : L ≠ [])
+  (h1 : List.Chain' (fun e₁ e₂ ↦ present G (e₁, e₂)) L)
+  (h2 : ∀ v ∈ L.tail, a ∈ freeColorsOn C v)
+  (h3 : ∀ v ∈ L, b ∈ freeColorsOn C v)
+  (h4 : next a b L ∈ freeColorsOn C (L.getLast hl)) :
+  next b a L ∈ freeColorsOn (recolor C a b ha hb hne L hnodup h1 h2 h3) (L.getLast hl) := by
+  fun_induction recolor
+  · contradiction
+  · simp_all [next]
+  · rename_i p₁ p₂ ps hnodup _ _ _ _ _ _ _ ih
+    simp_all!
+    by_cases hps : ps = []
+    · subst hps
+      simp_all [next, recolor]
+    · apply ih
+      rwa [← freeColors_invariant]
+      simp_all!
+      grind
+
 variable
   {x : Vertex n}
   (hne : a ≠ b)
   (hfree : b ∈ freeColorsOn C x)
 
-def invert : EdgeColoring c G :=
-  let P := maximalPath C ha hb hne hfree
+def invert {P : Path C a b x} (h : isMaximalPath P) : EdgeColoring c G :=
   recolor (uncolor C a b ha hb P.val P.nodupAx P.colorAx)
     a b ha hb hne P.val P.nodupAx (edges_present ha hb P.val P.colorAx)
     (by
-    intro v h
+    intro v hv
     apply a_free_of_uncolored
     · rwa [List.head_eq_getElem, P.firstElemAx]
       exact P.nonemptyAx
-    · apply maximalPath_isMaximal
-    · exact List.mem_of_mem_tail h)
+    · apply h
+    · exact List.mem_of_mem_tail hv)
     (by
-    intro v h
+    intro v hv
     apply b_free_of_uncolored
     · rwa [List.head_eq_getElem, P.firstElemAx]
       exact P.nonemptyAx
-    · apply maximalPath_isMaximal
+    · apply h
     · assumption)
 
 
--- def pathEdges (P : Path C a b x) : EdgeSet G where
---   val :=
-
--- def pathEdges (P : List (Vertex n)) : List (Edge n) :=
---   match P with
--- | [] => []
--- | [_] => []
--- | p₁ :: p₂ :: ps => (p₁, p₂) :: (p₂, p₁) :: pathEdges (p₂ :: ps)
-
--- theorem pathEdges_spec (P : List (Vertex n)) :
---   List.Chain' (fun u v ↦ (u, v) ∈ pathEdges P) P := by
---   fun_induction pathEdges
---   all_goals simp_all
---   simp_all [List.chain'_iff_get]
-
--- theorem not_mem_pathEdges_if_aux {e : Edge n} {P : List (Vertex n)}
---   (h : e.1 ∉ P ∨ e.2 ∉ P) :
---   e ∉ pathEdges P := by
---   rcases h with h | h
---   all_goals
---   fun_induction pathEdges P <;> simp_all
---   contrapose! h
---   rcases h with h | h <;> simp_all
-
--- theorem not_mem_pathEdges_if {e : Edge n} {P : Path C a b x}
---   (h : e.1 ∉ P.val ∨ e.2 ∉ P.val) :
---   e ∉ pathEdges P.val := not_mem_pathEdges_if_aux h
-
--- theorem mem_pathEdges_if {e : Edge n} {P : Path C a b x}
---   (h : e ∈ pathEdges P.val) : e.1 ∈ P.val ∧ e.2 ∈ P.val := by
---   contrapose! h
---   exact not_mem_pathEdges_if h
-
--- theorem mem_pathEdges_symm {e : Edge n} {P : List (Vertex n)}
---   (h : e ∈ pathEdges P) : e.swap ∈ pathEdges P := by
---   fun_induction pathEdges P <;> simp_all
---   rcases h with h | h | h
---   any_goals subst h
---   all_goals tauto
-
--- include hne in
--- theorem exists_other_nbor_of_mem_pathEdges {u v : Vertex n} {P : (List (Vertex n))}
---   (h : (u, v) ∈ pathEdges P) (hne : P ≠ []) (hu : u ≠ P.head hne ∧ u ≠ P.getLast hne)
---   (hcolor : alternatesColor C P a b) :
---   ∃ w, (u, w) ∈ pathEdges P ∧ color C (u, w) ≠ color C (u, v) := by
---   fun_induction pathEdges P <;> simp_all
---   unfold alternatesColor alternates alternates at hcolor
---   split at hcolor <;> simp_all [pathEdges]
---   rename_i heq
---   rcases h with h | h
---   simp_all [color_symm]
---   left
---   tauto
---   rename_i p₁ p₂ ps _ v₁ v₂ vs
---   rcases h with h | h | h
---   use p₁
---   constructor
---   · left
---     tauto
---   · simp_all [color_symm]
---   use v
---   constructor
---   · tauto
---   -- · simp_all [color_symm]
---     -- have : u ∈ (v₂ :: vs) ∧ v ∈ (v₂ :: vs) := by
---     --   have := @not_mem_pathEdges_if_aux _ (u, v) (v₂ :: vs)
---     --   simp at this
-
-
---       -- stop
-
-
-
-
-
-
-
---   stop
-
-
-
-
-
-
-
-
-
-
---   sorry
-
-
-
--- -- theorem getElem_of_mem_pathEdges {v : Vertex n} {P : List (Vertex n)}
--- --   {i : Nat} {hi : i < P.length}
--- --   (h : (P[i], v) ∈ pathEdges P) :
--- --   P[i+1]? = some v ∨ P[i-1]? = some v := by
--- --   fun_induction pathEdges P <;> simp_all
--- --   rename_i p₁ p₂ ps ih
--- --   rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩ | h
--- --   subst h2
-
-
-
-
--- --   sorry
-
--- #check List.getElem_of_mem
-
--- include ha hb in
--- theorem present_of_mem_pathEdges {e : Edge n} {P : List (Vertex n)}
---   (h1 : alternatesColor C P a b) (h2 : e ∈ pathEdges P) :
---   present G e := by
---   have := edges_present ha hb P h1
---   have := pathEdges_spec P
-
-
-
-
---   sorry
-
--- theorem getElem_of_mem_pathEdges {u v : Vertex n} {P : List (Vertex n)}
---   (h : (u, v) ∈ pathEdges P) (h2 : P.Nodup) :
---   (∃ i, ∃ (h : i < P.length - 1), P[i] = u ∧ P[i + 1] = v) ∨
---   (∃ i, ∃ (h : i < P.length), P[i] = u ∧ P[i-1] = v) := by
---   fun_induction pathEdges
---   · simp_all
---   · simp_all
---   rename_i p₁ p₂ ps ih
---   simp at h
---   rcases h with h | h | h
---   · left
---     use 0, (by simp_all)
---     simp [h]
---   · right
---     use 1, (by simp_all)
---     simp [h]
---   · specialize ih h (List.Nodup.of_cons h2)
---     rcases ih with ⟨i, hi, ih⟩ | ⟨i, hi, ih⟩
---     · left
---       use i+1, (by simpa)
---       simpa
---     · right
---       use i+1, (by simpa)
---       simp [ih]
---       rw [List.getElem_cons]
---       split
---       have : u ∈ (p₂ :: ps) ∧ v ∈ (p₂ :: ps) := by
---         have := @not_mem_pathEdges_if_aux _ (u, v) (p₂ :: ps)
---         simp_all
---         tauto
---       have : p₁ ≠ p₂ := by
---         simp at h2
---         tauto
---       have : p₁ ∉ (p₂ :: ps) := by
---         exact List.Nodup.notMem h2
---       have : p₂ ∉ ps := by
---         apply List.Nodup.notMem
---         exact List.Nodup.of_cons h2
---       simp_all
---       rcases ih with ⟨aux1, aux2⟩
---       subst aux1 aux2
---       exfalso
---       sorry
---       sorry
-
-
-
-
-
-
-
-
-
-
---   -- sorry
-
--- theorem color_of_mem_pathEdges {e : Edge n} {P : List (Vertex n)}
---   (h : e ∈ pathEdges P)
---   (hcolor : alternatesColor C P a b) :
---   color C e = a ∨ color C e = b := by
---   fun_induction pathEdges P generalizing a b <;> simp_all
---   unfold alternatesColor alternates at hcolor
---   rcases h with h | h | h <;> simp_all [color_symm]
---   rename_i ih
---   specialize @ih b a
---   apply Or.symm
---   apply ih
---   simp [alternatesColor]
---   tauto
-
 def isInverted_notmem (C C' : EdgeColoring c G) (P : Path C a b x) : Prop :=
-  ∀ e ∈ (toEdgeSet G).val, e ∉ pathEdges P → (color C e = color C' e)
+  ∀ e, e ∉ pathEdges P → (color C e = color C' e)
 
 def isInverted_mem (C C' : EdgeColoring c G) (P : Path C a b x) : Prop :=
-  ∀ e ∈ pathEdges P, (color C e = a → color C' e = b) ∧ (color C e = b → color C' e = a)
+  ∀ e ∈ pathEdges P, (color C e = a ↔ color C' e = b) ∧ (color C e = b ↔ color C' e = a)
 
 def isInverted (C C' : EdgeColoring c G) (P : Path C a b x) :=
   isInverted_notmem C C' P ∧ isInverted_mem C C' P
 
-theorem invert_spec : isInverted C (invert ha hb hne hfree) (maximalPath C ha hb hne hfree) := by sorry
+theorem invert_spec_aux (C C' : EdgeColoring c G) (L : List (Vertex n))
+  (h1 : alternatesColor C L a b) (h2 : alternatesColor C' L b a) :
+  ∀ e ∈ allAdjacentPairs L, (color C e = a ↔ color C' e = b) ∧ (color C e = b ↔ color C' e = a) := by
+  intro e he
+  fun_induction allAdjacentPairs generalizing a b <;> simp_all
+  rename_i x₁ x₂ xs ih
+  unfold alternatesColor alternates at h1 h2
+  rcases he with he | he | he
+  · subst he
+    simp_all [eq_comm]
+  · subst he
+    simp_all [color_symm, eq_comm]
+  · apply And.comm.mp
+    apply @ih b a
+    · rw [alternatesColor]; exact alternates_tail h1
+    · rw [alternatesColor]; exact alternates_tail h2
+    · assumption
+
+theorem invert_spec {P : Path C a b x} (h : isMaximalPath P) :
+  isInverted C (invert ha hb hne hfree h) P := by
+  constructor <;> intro e he
+  rw [invert, ← recolor_spec1, ← uncolor_spec1]
+  any_goals simpa [pathEdges] using he
+  apply invert_spec_aux
+  · exact P.colorAx
+  · rw [invert]; apply recolor_spec2
+  simpa [pathEdges] using he
+
+theorem inversion_invariant_of_edgeColor {C C' : EdgeColoring c G} {P : Path C a b x} {e : Edge n}
+  (h1 : isInverted C C' P) (h2 : color C e ≠ a ∧ color C e ≠ b) :
+  color C e = color C' e := by
+  apply h1.left
+  contrapose! h2
+  exact color_of_mem_pathEdges h2
+
+theorem inversion_invariant_of_edgeColor' {C C' : EdgeColoring c G} {P : Path C a b x} {e : Edge n}
+  (h1 : isInverted C C' P) (h2 : color C' e ≠ a ∧ color C' e ≠ b) :
+  color C e = color C' e := by
+  apply h1.left
+  contrapose! h2
+  have := color_of_mem_pathEdges h2
+  apply h1.right at h2
+  tauto
+
+def invertedPath {P : Path C a b x} (h : isMaximalPath P) : Path (invert ha hb hne hfree h) b a x where
+  val := P.val
+  nonemptyAx := P.nonemptyAx
+  firstElemAx := P.firstElemAx
+  nodupAx := P.nodupAx
+  colorAx := by
+    rw [invert]
+    apply recolor_spec2
+
+theorem freeColor_head_inv {P : Path C a b x} (h : isMaximalPath P) :
+  a ∈ freeColorsOn (invert ha hb hne hfree h) x := by
+  have hcolor := P.colorAx
+  unfold alternatesColor alternates at hcolor
+  split at hcolor
+  · simp_all [P.nonemptyAx]
+  · have aux : P.val = [x] := by
+      have := P.firstElemAx
+      simp_all
+    simpa [invert, uncolor, recolor, isMaximalPath, next, aux] using h
+  · rename_i _ v₁ v₂ vs heq
+    have hx : x = v₁ := by
+      have := P.firstElemAx
+      simp_all
+    have : (x, v₂) ∈ pathEdges P := by
+      rw [pathEdges, mem_allAdjacentPairs_iff_adjacent]
+      left
+      use 0, (by simp_all)
+      simp_all
+    apply freeColor_of_not_exists_and_isSome _ ha
+    intro hc
+    rcases hc with ⟨v, hv⟩
+    by_cases h' : (x, v) ∈ pathEdges P
+    · have := (invert_spec ha hb hne hfree h).right (x, v) h'
+      simp [hv, hne] at this
+      apply not_exists_of_freeColor at hfree
+      simp_all
+    · have := (invert_spec ha hb hne hfree h).left (x, v) h'
+      subst hx
+      rw [hv] at this
+      rw [← this] at ha
+      rw [← hcolor.left] at this
+      apply color_unique at this
+      simp_all [Option.isSome_iff_ne_none]
+
+
+
+theorem inv_maximal_of_maximal {P : Path C a b x} (h : isMaximalPath P) :
+  isMaximalPath (invertedPath ha hb hne hfree h) := by
+    simp [isMaximalPath, invertedPath] at h ⊢
+    unfold invert
+    apply recolor_spec3
+    rcases next_eq_a_or_b a b P.val with hnext | hnext <;> rw [hnext]
+    · apply a_free_of_uncolored
+      rwa [List.head_eq_getElem, P.firstElemAx]
+      exact P.nonemptyAx
+      assumption
+      simp
+    · apply b_free_of_uncolored
+      rwa [List.head_eq_getElem, P.firstElemAx]
+      exact P.nonemptyAx
+      assumption
+      simp

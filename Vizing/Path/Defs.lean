@@ -47,10 +47,11 @@ Maximal path is maximal: if last edge is colored a,
 then b is free on last vertex, and vice versa
 -/
 
+def isMaximalPath {C : EdgeColoring c G} (P : Path C a b x) :=
+  next a b P.val ∈ freeColorsOn C (P.val.getLast P.nonemptyAx)
+
 theorem maximalPath_isMaximal :
-  next a b (maximalPath C ha hb hne hfree).val ∈
-  freeColorsOn C ((maximalPath C ha hb hne hfree).val.getLast
-    (maximalPath C ha hb hne hfree).nonemptyAx) := by
+  isMaximalPath (maximalPath C ha hb hne hfree) := by
   simp [maximalPath, mkMaxPath]
   apply extendPath_maximal
 

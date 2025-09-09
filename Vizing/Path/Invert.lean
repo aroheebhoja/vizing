@@ -229,25 +229,25 @@ theorem recolor_spec2 (hne : a ≠ b)
     tauto
   assumption
 
-theorem recolor_spec3 (hne : a ≠ b)
-  (L : List (Vertex n)) (hnodup : L.Nodup) (hl : L ≠ [])
-  (h1 : List.Chain' (fun e₁ e₂ ↦ present G (e₁, e₂)) L)
-  (h2 : ∀ v ∈ L.tail, a ∈ freeColorsOn C v)
-  (h3 : ∀ v ∈ L, b ∈ freeColorsOn C v)
-  (h4 : next a b L ∈ freeColorsOn C (L.getLast hl)) :
-  next b a L ∈ freeColorsOn (recolor C a b ha hb hne L hnodup h1 h2 h3) (L.getLast hl) := by
-  fun_induction recolor
-  · contradiction
-  · simp_all [next]
-  · rename_i p₁ p₂ ps hnodup _ _ _ _ _ _ _ ih
-    simp_all!
-    by_cases hps : ps = []
-    · subst hps
-      simp_all [next, recolor]
-    · apply ih
-      rwa [← freeColors_invariant]
-      simp_all!
-      grind
+-- theorem recolor_spec3 (hne : a ≠ b)
+--   (L : List (Vertex n)) (hnodup : L.Nodup) (hl : L ≠ [])
+--   (h1 : List.Chain' (fun e₁ e₂ ↦ present G (e₁, e₂)) L)
+--   (h2 : ∀ v ∈ L.tail, a ∈ freeColorsOn C v)
+--   (h3 : ∀ v ∈ L, b ∈ freeColorsOn C v)
+--   (h4 : next a b L ∈ freeColorsOn C (L.getLast hl)) :
+--   next b a L ∈ freeColorsOn (recolor C a b ha hb hne L hnodup h1 h2 h3) (L.getLast hl) := by
+--   fun_induction recolor
+--   · contradiction
+--   · simp_all [next]
+--   · rename_i p₁ p₂ ps hnodup _ _ _ _ _ _ _ ih
+--     simp_all!
+--     by_cases hps : ps = []
+--     · subst hps
+--       simp_all [next, recolor]
+--     · apply ih
+--       rwa [← freeColors_invariant]
+--       simp_all!
+--       grind
 
 variable
   {x : Vertex n}
@@ -281,6 +281,118 @@ def isInverted_mem (C C' : EdgeColoring c G) (P : Path C a b x) : Prop :=
 
 def isInverted (C C' : EdgeColoring c G) (P : Path C a b x) :=
   isInverted_notmem C C' P ∧ isInverted_mem C C' P
+
+
+-- include ha hb hfree in
+-- theorem mem_path_of_color_aux {L : List (Vertex n)} (h1 : L ≠ [])
+--   (h2 : L[0]'(by exact List.length_pos_iff.mpr h1) = x)
+--   (h3 : alternatesColor C L a b)
+--   (h4 : next a b L ∈ freeColorsOn C (L.getLast h1))
+--   {u v : Vertex n} (h5 : u ∈ L)
+--   (h : color C (u, v) = a ∨ color C (u, v) = b) :
+--   (u, v) ∈ allAdjacentPairs L := by
+--   unfold alternatesColor at h3
+--   apply not_exists_of_freeColor at hfree
+--   have hsome : color C (u, v) ≠ none := by
+--     rcases h with h | h <;> simp_all [Option.isSome_iff_ne_none]
+--   rcases List.getElem_of_mem h5 with ⟨i, hi1, hi2⟩
+--   have : i = 0 ∨ (0 < i ∧ i < L.length - 1) ∨ i = L.length - 1 := by omega
+--   rcases this with this | this | this
+--   · subst this
+--     unfold alternates at h3
+--     split at h3 <;> simp_all [next, allAdjacentPairs]
+--     · apply not_exists_of_freeColor at h4
+--       simp_all
+--     · left
+--       subst hi2
+--       rw [← h3.left] at h
+--       apply color_unique_of_isSome at h <;> simp_all
+--   · have := middle_spec h3 i this
+--     rw [mem_allAdjacentPairs_iff_adjacent]
+--     rcases this with this | this
+--     · rcases h with h | h
+--       · rw [← this.left, hi2, color_symm _ L[i - 1]] at h
+--         apply color_unique_of_isSome at h
+--         right
+--         use i - 1, (by omega)
+--         grind
+--         simpa [Option.isSome_iff_ne_none]
+--       · rw [← this.right, hi2] at h
+--         apply color_unique_of_isSome at h
+--         left
+--         use i, (by omega)
+--         simp_all
+--         simpa [Option.isSome_iff_ne_none]
+--     · rcases h with h | h
+--       · rw [← this.right, hi2] at h
+--         apply color_unique_of_isSome at h
+--         left
+--         use i, (by omega)
+--         simp_all
+--         simpa [Option.isSome_iff_ne_none]
+--       · rw [← this.left, hi2, color_symm _ L[i - 1]] at h
+--         apply color_unique_of_isSome at h
+--         right
+--         use i - 1, (by omega)
+--         grind
+--         simpa [Option.isSome_iff_ne_none]
+--   · subst this
+--     rw [List.getLast_eq_getElem] at h4
+--     by_cases h : L.length = 1
+--     · have : L = [x] := by
+--         apply List.length_eq_one_iff.mp at h
+--         grind
+--       apply not_exists_of_freeColor at h4
+--       simp_all [next]
+--     · rw [mem_allAdjacentPairs_iff_adjacent]
+--       rcases next_eq_a_or_b a b L with hnext | hnext
+--       · have := last_b_of_next_a _ a b L (by grind) h3 hnext
+--         have aux : color C (u, v) = b := by
+--           rw [hnext] at h4
+--           apply not_exists_of_freeColor at h4
+--           rw [← hi2]
+--           simp_all
+--         subst hi2
+--         simp_rw [color_symm, ← aux] at this
+--         apply color_unique_of_isSome at this
+--         right
+--         · use L.length - 2, (by omega)
+--           simp_all
+--           congr; omega
+--         simp_all
+--       · have := last_a_of_next_b _ a b L (by grind) h3 hnext
+--         have aux : color C (u, v) = a := by
+--           rw [hnext] at h4
+--           apply not_exists_of_freeColor at h4
+--           rw [← hi2]
+--           simp_all
+--         subst hi2
+--         simp_rw [color_symm, ← aux] at this
+--         apply color_unique_of_isSome at this
+--         right
+--         · use L.length - 2, (by omega)
+--           simp_all
+--           congr; omega
+--         simp_all
+
+
+-- example {C C' : EdgeColoring c G} {P : Path C a b x} (h1 : isInverted C C' P) (h2 : isMaximalPath P)
+--   {u : Vertex n} (h3 : u ∈ P.val) (h4 : a ∈ freeColorsOn C u) : b ∈ freeColorsOn C' u := by
+
+--   -- apply not_exists_of_freeColor at h4
+--   apply freeColor_of_not_exists_and_isSome _ hb
+--   intro h
+--   rcases h with ⟨v, h⟩
+
+
+
+
+
+
+
+
+
+--   sorry
 
 theorem invert_spec_aux (C C' : EdgeColoring c G) (L : List (Vertex n))
   (h1 : alternatesColor C L a b) (h2 : alternatesColor C' L b a) :
@@ -335,56 +447,99 @@ def invertedPath {P : Path C a b x} (h : isMaximalPath P) : Path (invert ha hb h
     rw [invert]
     apply recolor_spec2
 
-theorem freeColor_head_inv {P : Path C a b x} (h : isMaximalPath P) :
-  a ∈ freeColorsOn (invert ha hb hne hfree h) x := by
-  have hcolor := P.colorAx
-  unfold alternatesColor alternates at hcolor
-  split at hcolor
-  · simp_all [P.nonemptyAx]
-  · have aux : P.val = [x] := by
-      have := P.firstElemAx
-      simp_all
-    simpa [invert, uncolor, recolor, isMaximalPath, next, aux] using h
-  · rename_i _ v₁ v₂ vs heq
-    have hx : x = v₁ := by
-      have := P.firstElemAx
-      simp_all
-    have : (x, v₂) ∈ pathEdges P := by
-      rw [pathEdges, mem_allAdjacentPairs_iff_adjacent]
-      left
-      use 0, (by simp_all)
-      simp_all
-    apply freeColor_of_not_exists_and_isSome _ ha
-    intro hc
-    rcases hc with ⟨v, hv⟩
-    by_cases h' : (x, v) ∈ pathEdges P
-    · have := (invert_spec ha hb hne hfree h).right (x, v) h'
-      simp [hv, hne] at this
-      apply not_exists_of_freeColor at hfree
-      simp_all
-    · have := (invert_spec ha hb hne hfree h).left (x, v) h'
-      subst hx
-      rw [hv] at this
-      rw [← this] at ha
-      rw [← hcolor.left] at this
-      apply color_unique at this
-      simp_all [Option.isSome_iff_ne_none]
+include ha hb hfree in
+theorem mem_path_of_color' {C' : EdgeColoring c G} {P : Path C a b x} (hc : isInverted C C' P)
+  {u v : Vertex n} (h : u ∈ P.val) (h2 : color C' (u, v) = a ∨ color C' (u, v) = b)
+  (h3 : isMaximalPath P) :
+  (u, v) ∈ pathEdges P := by
+  apply mem_path_of_color_aux ha hb hfree P.nonemptyAx P.firstElemAx P.colorAx h3 h
+  rcases hc with ⟨hc1, hc2⟩
+  by_cases h : (u, v) ∈ pathEdges P
+  · specialize hc2 (u, v) h
+    tauto
+  · specialize hc1 (u, v) h
+    simp_all
+
+include ha hb hfree in
+theorem freeColor_inv_a {C' : EdgeColoring c G} {P : Path C a b x}
+  (hc : isInverted C C' P) (h : isMaximalPath P) {u : Vertex n}
+  (h1 : u ∈ P.val) (h2 : a ∈ freeColorsOn C u) :
+  b ∈ freeColorsOn C' u := by
+  apply not_exists_of_freeColor at h2
+  apply freeColor_of_not_exists_and_isSome _ hb
+  contrapose! h2
+  rcases h2 with ⟨v, hv⟩
+  use v
+  have : (u, v) ∈ pathEdges P := by
+    apply mem_path_of_color' ha hb hfree hc h1 (by tauto) h
+  have := hc.right (u, v) (mem_path_of_color' ha hb hfree hc h1 (by tauto) h)
+  tauto
+
+include ha hb hfree in
+theorem freeColor_inv_b {C' : EdgeColoring c G} {P : Path C a b x}
+  (hc : isInverted C C' P) (h : isMaximalPath P) {u : Vertex n}
+  (h1 : u ∈ P.val) (h2 : b ∈ freeColorsOn C u) :
+  a ∈ freeColorsOn C' u := by
+  apply not_exists_of_freeColor at h2
+  apply freeColor_of_not_exists_and_isSome _ ha
+  contrapose! h2
+  rcases h2 with ⟨v, hv⟩
+  use v
+  have : (u, v) ∈ pathEdges P := by
+    apply mem_path_of_color' ha hb hfree hc h1 (by tauto) h
+  have := hc.right (u, v) (mem_path_of_color' ha hb hfree hc h1 (by tauto) h)
+  tauto
+
+-- theorem freeColor_head_inv {P : Path C a b x} (h : isMaximalPath P) :
+--   a ∈ freeColorsOn (invert ha hb hne hfree h) x := by
+--   have hcolor := P.colorAx
+--   unfold alternatesColor alternates at hcolor
+--   split at hcolor
+--   · simp_all [P.nonemptyAx]
+--   · have aux : P.val = [x] := by
+--       have := P.firstElemAx
+--       simp_all
+--     simpa [invert, uncolor, recolor, isMaximalPath, next, aux] using h
+--   · rename_i _ v₁ v₂ vs heq
+--     have hx : x = v₁ := by
+--       have := P.firstElemAx
+--       simp_all
+--     have : (x, v₂) ∈ pathEdges P := by
+--       rw [pathEdges, mem_allAdjacentPairs_iff_adjacent]
+--       left
+--       use 0, (by simp_all)
+--       simp_all
+--     apply freeColor_of_not_exists_and_isSome _ ha
+--     intro hc
+--     rcases hc with ⟨v, hv⟩
+--     by_cases h' : (x, v) ∈ pathEdges P
+--     · have := (invert_spec ha hb hne hfree h).right (x, v) h'
+--       simp [hv, hne] at this
+--       apply not_exists_of_freeColor at hfree
+--       simp_all
+--     · have := (invert_spec ha hb hne hfree h).left (x, v) h'
+--       subst hx
+--       rw [hv] at this
+--       rw [← this] at ha
+--       rw [← hcolor.left] at this
+--       apply color_unique at this
+--       simp_all [Option.isSome_iff_ne_none]
 
 
 
-theorem inv_maximal_of_maximal {P : Path C a b x} (h : isMaximalPath P) :
-  isMaximalPath (invertedPath ha hb hne hfree h) := by
-    simp [isMaximalPath, invertedPath] at h ⊢
-    unfold invert
-    apply recolor_spec3
-    rcases next_eq_a_or_b a b P.val with hnext | hnext <;> rw [hnext]
-    · apply a_free_of_uncolored
-      rwa [List.head_eq_getElem, P.firstElemAx]
-      exact P.nonemptyAx
-      assumption
-      simp
-    · apply b_free_of_uncolored
-      rwa [List.head_eq_getElem, P.firstElemAx]
-      exact P.nonemptyAx
-      assumption
-      simp
+-- theorem inv_maximal_of_maximal {P : Path C a b x} (h : isMaximalPath P) :
+--   isMaximalPath (invertedPath ha hb hne hfree h) := by
+--     simp [isMaximalPath, invertedPath] at h ⊢
+--     unfold invert
+--     apply recolor_spec3
+--     rcases next_eq_a_or_b a b P.val with hnext | hnext <;> rw [hnext]
+--     · apply a_free_of_uncolored
+--       rwa [List.head_eq_getElem, P.firstElemAx]
+--       exact P.nonemptyAx
+--       assumption
+--       simp
+--     · apply b_free_of_uncolored
+--       rwa [List.head_eq_getElem, P.firstElemAx]
+--       exact P.nonemptyAx
+--       assumption
+--       simp

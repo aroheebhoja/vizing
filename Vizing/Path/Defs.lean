@@ -55,6 +55,7 @@ theorem maximalPath_isMaximal :
   simp [maximalPath, mkMaxPath]
   apply extendPath_maximal
 
+
 theorem isLast_if {P : Path C a b x} {u : Vertex n}
   (h1 : u ∈ P.val) (h2 : a ∈ freeColorsOn C u) :
   u = P.val[P.val.length - 1]'(by

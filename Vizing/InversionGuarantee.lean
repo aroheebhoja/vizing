@@ -268,7 +268,15 @@ theorem inversion_guarantee_of_exists_and_mem_path (F : Fan C x y)
     rw [← hv]
     simp [color, last, Array.back_eq_getElem]
     apply hC'
-    sorry
+    by_contra hmem
+    rw [last, Array.back_eq_getElem] at ha1
+    rw [mem_allAdjacentPairs_iff_adjacent] at hmem
+    apply mem_of_adjacent at hmem
+    have hc1 := isLast_if C hmem.left ha1
+    have hc2 := isLast_if C hp aux1
+    rw [← hc2] at hc1
+    rw [← Array.getElem_toList, ← Array.getElem_toList, List.Nodup.getElem_inj_iff F.nodupAx] at hc1
+    omega
   · have hcolor := F.colorAx
     unfold colorAx fan_prop at ⊢ hcolor
     apply List.chain'_iff_get.mpr
@@ -297,7 +305,7 @@ theorem inversion_guarantee_of_exists_and_mem_path (F : Fan C x y)
         (by apply @chain'_rel_of_idx_consec _ _ F.val.toList i (i + 1) (by omega) (by omega) hcolor; rfl)
       · apply color_neq_of_fan_edge ha hj hx (by grind) (by grind)
 
-include ha hb in
+include ha in
 theorem inversion_guarantee_of_exists_and_not_mem_path (F : Fan C x y)
   {C' : EdgeColoring c G} {P : Path C a b x} {j : Fin F.val.size}
   (hC' : isInverted C C' P) (hxy : color C (x, y) = none)

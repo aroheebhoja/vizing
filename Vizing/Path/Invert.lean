@@ -343,7 +343,7 @@ theorem mem_path_of_color' {C' : EdgeColoring c G} {P : Path C a b x} (hc : isIn
     simp_all
 
 include ha hb hfree in
-theorem freeColor_inv_a {C' : EdgeColoring c G} {P : Path C a b x}
+theorem freeColor_inv_b {C' : EdgeColoring c G} {P : Path C a b x}
   (hc : isInverted C C' P) (h : isMaximalPath P) {u : Vertex n}
   (h1 : u ∈ P.val) (h2 : a ∈ freeColorsOn C u) :
   b ∈ freeColorsOn C' u := by
@@ -358,7 +358,7 @@ theorem freeColor_inv_a {C' : EdgeColoring c G} {P : Path C a b x}
   tauto
 
 include ha hb hfree in
-theorem freeColor_inv_b {C' : EdgeColoring c G} {P : Path C a b x}
+theorem freeColor_inv_a {C' : EdgeColoring c G} {P : Path C a b x}
   (hc : isInverted C C' P) (h : isMaximalPath P) {u : Vertex n}
   (h1 : u ∈ P.val) (h2 : b ∈ freeColorsOn C u) :
   a ∈ freeColorsOn C' u := by

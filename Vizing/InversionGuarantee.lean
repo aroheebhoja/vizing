@@ -86,7 +86,6 @@ theorem colorAx_invariant_aux
     use v
     simp_all
 
-include ha hb in
 theorem colorAx_invariant {C' : EdgeColoring c G} {F : Fan C x y}
   (h : ∀ (a b : Vertex n), color C (a, b) = color C' (a, b)) :
   colorAx C' F.val x := by
@@ -297,7 +296,7 @@ theorem inversion_guarantee_of_exists_and_mem_path (F : Fan C x y)
         have := hC'.right _ this
         tauto
       rw [aux5]
-      apply freeColor_inv_a ha hb hx hC' hp2 hp aux1
+      apply freeColor_inv_b ha hb hx hC' hp2 hp aux1
     · have : color C (x, F.val[i + 1]'(by grind)) = color C' (x, F.val[i + 1]'(by grind)) := by
         apply fan_edges_invariant ha hj hC' hx (by grind) (by grind)
       rw [← this]

@@ -190,5 +190,69 @@ theorem rotateFan_invariant (C : EdgeColoring c G) (F : Fan C x y) (a : Color c)
   intro h; subst h
   simpa using h2
 
+theorem rotateFan_isSome_of_isSome (C : EdgeColoring c G) (F : Fan C x y) (a : Color c)
+  (hvalid : edgeColorValid C (x, last F) a) (e : Edge n) (ha : a.isSome)
+  (h : (color C e).isSome) :
+  (color (rotateFan C F a hvalid) e).isSome := by
+  fun_induction rotateFan C F a hvalid
+  rename_i C F a hvalid a' C' hsize F' hvalid' ih
+  apply ih
+  · unfold a'
+    apply fan_colored_edges x y F
+    · simp [last]
+    by_contra hf
+    have : F.val.size = 1 := by
+      have := F.firstElemAx
+      rw [last, Array.back] at hf
+      simp_rw [← hf] at this
+      rw [← Array.getElem_toList, ← Array.getElem_toList,
+        List.Nodup.getElem_inj_iff F.nodupAx] at this
+      omega
+    have : F'.val.size = 0 := by
+      simp [F', mkFan, this]
+    have := F'.nonemptyAx
+    grind
+  case' case2 => rename_i C F a hvalid C' hsize
+  all_goals
+  unfold C'
+  by_cases he : e = (x, last F) ∨ e = (last F, x)
+  · rcases he with he | he
+    · rwa [he, setEdgeColor_spec]
+    · rwa [he, color_symm, setEdgeColor_spec]
+  · rwa [← color_invariant]
+    tauto
+
+theorem rotateFan_x_y_isSome (C : EdgeColoring c G) (F : Fan C x y) (a : Color c)
+  (hvalid : edgeColorValid C (x, last F) a) (ha : a.isSome) :
+  (color (rotateFan C F a hvalid) (x, y)).isSome := by
+  fun_induction rotateFan C F a hvalid
+  · rename_i C F a hvalid a' C' hsize F' hvalid' ih
+    apply ih
+    unfold a'
+    apply fan_colored_edges x y F
+    · simp [last]
+    by_contra hf
+    have : F.val.size = 1 := by
+      have := F.firstElemAx
+      rw [last, Array.back] at hf
+      simp_rw [← hf] at this
+      rw [← Array.getElem_toList, ← Array.getElem_toList,
+        List.Nodup.getElem_inj_iff F.nodupAx] at this
+      omega
+    have : F'.val.size = 0 := by
+      simp [F', mkFan, this]
+    have := F'.nonemptyAx
+    grind
+  · rename_i C F a hvalid C' hsize
+    have : last F = y := by
+      simp_rw [last, Array.back_eq_getElem, ← F.firstElemAx, ← Array.getElem_toList,
+        List.Nodup.getElem_inj_iff F.nodupAx]
+      omega
+    unfold C'
+    simp_rw [this, setEdgeColor_spec]
+    assumption
+
+
+
 
 end Fan

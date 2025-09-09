@@ -58,13 +58,4 @@ theorem takeUntil_spec {α : Type} [BEq α] [LawfulBEq α]
       constructor
       all_goals omega
 
-theorem takeUntil_spec' {α : Type} [BEq α] [LawfulBEq α]
-  (p : α → Bool) (A : Array α) (i : Fin (takeUntil p A).size) :
-  i = (takeUntil p A).size - 1 → p (takeUntil p A)[i] = false := by
-  intro h
-  simp [takeUntil] at ⊢ h
-
-
-  sorry
-
 end Aux
